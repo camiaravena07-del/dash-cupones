@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Margen & Cupones — Prototipo pre-Looker</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@110,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1EF; --panel:#FFFFFF; --ink:#15231E; --muted:#5D6E67; --line:#D7DEDA;
+  --petrol:#0E6B5C; --petrol-soft:#E0EEEA; --amber:#C07514; --amber-soft:#F7EBDA;
+  --slate:#46708F; --slate-soft:#E3ECF2; --red:#AF3D2E; --red-soft:#F4E3E0;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;padding-bottom:60px}
+.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
+header{background:var(--ink);color:#F2F5F3;padding:18px 28px 0}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font-family:"Archivo",sans-serif;font-weight:800;font-stretch:110%;font-size:1.35rem;letter-spacing:.01em;text-transform:uppercase}
+.brand .tag{font-size:.75rem;color:#9FB4AC;border:1px solid #3A4A44;border-radius:99px;padding:3px 10px}
+.tabs{display:flex;gap:2px;margin-top:16px}
+.tab{font-family:"Archivo",sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.03em;text-transform:uppercase;
+  background:transparent;border:none;color:#8FA39B;padding:11px 18px;cursor:pointer;border-radius:8px 8px 0 0}
+.tab:hover{color:#D7E2DD}
+.tab.active{background:var(--bg);color:var(--ink)}
+.tab:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+
+.filters{display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;margin:18px 28px 0}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.f select,.f input[type=date]{font:inherit;font-size:.85rem;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#FAFBFA;color:var(--ink)}
+.f select:focus-visible,.f input:focus-visible,button:focus-visible{outline:2px solid var(--petrol);outline-offset:1px}
+.hourbox{display:flex;align-items:center;gap:10px}
+.hourbox input[type=range]{width:130px;accent-color:var(--petrol)}
+.hourval{font-family:"IBM Plex Mono",monospace;font-size:.8rem;min-width:86px;text-align:center;background:#FAFBFA;border:1px solid var(--line);border-radius:7px;padding:6px 4px}
+#reset{font:inherit;font-size:.8rem;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:7px;padding:8px 14px;cursor:pointer}
+#reset:hover{color:var(--ink);border-color:var(--muted)}
+.f .scope{font-size:.72rem;color:var(--muted)}
+
+main{padding:20px 28px}
+.page{display:none}
+.page.active{display:block}
+.pagebar{display:flex;align-items:center;gap:10px;margin-bottom:14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius);padding:10px 16px}
+.pagebar label{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pagebar select{font:inherit;font-size:.85rem;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:#FAFBFA;color:var(--ink)}
+.pagebar .hint{font-size:.72rem;color:var(--muted);margin-left:auto}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px 12px}
+.card .k{font-size:.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.card .v{font-family:"Archivo",sans-serif;font-weight:700;font-stretch:110%;font-size:1.5rem;margin-top:6px;letter-spacing:-.01em}
+.card .s{font-size:.74rem;color:var(--muted);margin-top:3px}
+.card.hl{border-top:3px solid var(--petrol)}
+.card.hl2{border-top:3px solid var(--amber)}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-top:14px}
+.panel h2{font-family:"Archivo",sans-serif;font-weight:700;font-stretch:110%;font-size:.95rem;text-transform:uppercase;letter-spacing:.04em}
+.panel .sub{font-size:.78rem;color:var(--muted);margin-top:2px}
+
+/* Escalera de precio (waterfall) */
+.ladder{margin-top:16px}
+.ladder .bar{display:flex;height:46px;border-radius:8px;overflow:hidden}
+.seg{position:relative;min-width:2px}
+.seg.lista{background:var(--slate)}
+.seg.cupon{background:var(--amber)}
+.seg.costo{background:var(--red)}
+.seg.margen{background:var(--petrol)}
+.legend{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px}
+.leg{display:flex;gap:8px;align-items:flex-start}
+.leg .dot{width:11px;height:11px;border-radius:3px;margin-top:4px;flex:none}
+.leg .t{font-size:.78rem;color:var(--muted)}
+.leg .t b{display:block;color:var(--ink);font-size:.86rem}
+.leg .t .num{font-size:.8rem}
+
+svg text{font-family:"IBM Plex Mono",monospace;font-size:10.5px;fill:var(--muted)}
+
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.83rem}
+th{font-size:.67rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  text-align:right;padding:8px 10px;border-bottom:2px solid var(--ink);cursor:pointer;user-select:none;white-space:nowrap}
+th.l{text-align:left}
+th:hover{color:var(--ink)}
+th .arr{color:var(--petrol)}
+td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+td.l{text-align:left;white-space:normal}
+tr:hover td{background:#F4F7F5}
+td .pct{color:var(--muted);font-size:.76rem;margin-left:6px}
+.pos{color:var(--petrol)} .neg{color:var(--red)}
+
+.tablebar{display:flex;gap:14px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.tablebar input[type=search]{font:inherit;font-size:.85rem;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#FAFBFA;width:280px}
+.tablebar .count{font-size:.78rem;color:var(--muted)}
+.pager{display:flex;gap:6px;align-items:center;margin-top:12px;justify-content:flex-end}
+.pager button{font:inherit;font-size:.8rem;padding:6px 12px;border:1px solid var(--line);background:var(--panel);border-radius:7px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager span{font-size:.8rem;color:var(--muted)}
+
+.cupbars .row{display:grid;grid-template-columns:220px 1fr 110px;gap:12px;align-items:center;margin-top:8px}
+.cupbars .name{font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cupbars .track{height:20px;background:#F1F4F2;border-radius:5px;overflow:hidden}
+.cupbars .fill{height:100%;background:var(--amber);border-radius:5px;min-width:2px}
+.cupbars .val{font-size:.78rem;text-align:right}
+
+.note{font-size:.76rem;color:var(--muted);margin-top:14px;line-height:1.5}
+.empty{padding:30px;text-align:center;color:var(--muted);font-size:.85rem}
+.loadbar{display:flex;align-items:center;gap:14px;margin:0 28px;padding:9px 16px;background:var(--petrol-soft);
+  border:1px solid #BFD9D2;border-radius:8px;font-size:.8rem;color:#0B4D42}
+.loadbar code{font-family:"IBM Plex Mono",monospace;background:#fff;padding:1px 6px;border-radius:4px}
+.loadbar.err{background:var(--red-soft);border-color:#E3B7AF;color:#7A2A1E}
+.loadbar.ok{background:var(--petrol-soft)}
+.filebtn{font-weight:600;color:var(--petrol);border:1px solid var(--petrol);border-radius:7px;padding:5px 12px;cursor:pointer;background:#fff}
+.filebtn:hover{background:var(--petrol);color:#fff}
+.loadhint{color:var(--muted);margin-left:auto}
+body.drag{outline:3px dashed var(--petrol);outline-offset:-6px}
+@media(max-width:760px){
+  header,main{padding-left:14px;padding-right:14px}
+  .filters{margin:14px;gap:14px}
+  .cupbars .row{grid-template-columns:130px 1fr 90px}
+}
+@media(prefers-reduced-motion:no-preference){
+  .seg{transition:width .35s ease}
+  .cupbars .fill{transition:width .35s ease}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Margen &amp; Cupones</h1>
+    <span class="tag">Prototipo pre–Looker Studio · datos reales Surprice 30 jun – 7 jul 2026</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-page="p1" role="tab">1 · Resumen</button>
+    <button class="tab" data-page="p2" role="tab">2 · Detalle SKU</button>
+    <button class="tab" data-page="p3" role="tab">3 · Cupones</button>
+  </nav>
+</header>
+
+<div class="filters">
+  <div class="f"><label for="fstore">Store</label>
+    <select id="fstore"><option value="-1">Todas las stores</option></select></div>
+  <div class="f"><label for="fdesde">Desde</label><input type="date" id="fdesde"></div>
+  <div class="f"><label for="fhasta">Hasta</label><input type="date" id="fhasta"></div>
+  <div class="f"><label>Rango horario</label>
+    <div class="hourbox">
+      <input type="range" id="fh1" min="0" max="23" value="0" aria-label="Hora desde">
+      <span class="hourval num" id="fhval">00 – 23 h</span>
+      <input type="range" id="fh2" min="0" max="23" value="23" aria-label="Hora hasta">
+    </div></div>
+  <button id="reset">Limpiar filtros</button>
+  <div class="f" style="margin-left:auto"><span class="scope" id="scope"></span></div>
+</div>
+
+<div id="loadbar" class="loadbar">
+    <span id="loadstatus">Buscando <code>data.xlsx</code>…</span>
+    <label class="filebtn">Cargar otro Excel
+      <input type="file" id="fileinput" accept=".xlsx" hidden>
+    </label>
+    <span class="loadhint">o arrastra un .xlsx aquí</span>
+  </div>
+
+<main>
+
+<!-- ============ HOJA 1 ============ -->
+<section class="page active" id="p1">
+  <div class="pagebar"><label for="fmarca_p1">Marca</label>
+    <select id="fmarca_p1"><option value="-1">Todas las marcas</option></select>
+    <span class="hint">filtro independiente de esta hoja</span></div>
+  <div class="cards" id="cards1"></div>
+
+  <div class="panel">
+    <h2>Escalera de precio</h2>
+    <div class="sub">Cómo se descompone el ingreso a precio de lista hasta llegar al margen real. Base = SUM(ingreso_lista). El envío queda fuera: es ingreso sin costo de courier en el archivo, incluirlo inflaría el margen.</div>
+    <div class="ladder">
+      <div class="bar" id="ladderbar"></div>
+      <div class="legend" id="ladderleg"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Ingreso real y margen por día</h2>
+    <div class="sub">Barras = ingreso real diario · línea = % margen real</div>
+    <div id="daily"></div>
+  </div>
+</section>
+
+<!-- ============ HOJA 2 ============ -->
+<section class="page" id="p2">
+  <div class="pagebar"><label for="fmarca_p2">Marca</label>
+    <select id="fmarca_p2"><option value="-1">Todas las marcas</option></select>
+    <span class="hint">filtro independiente de esta hoja</span></div>
+  <div class="panel">
+    <h2>Detalle por SKU</h2>
+    <div class="sub">Agrupado por SKU base (estilo_color, sin talla). Click en un encabezado para ordenar.</div>
+    <div class="tablebar">
+      <input type="search" id="skusearch" placeholder="Buscar SKU, producto o marca…">
+      <span class="count" id="skucount"></span>
+    </div>
+    <div style="overflow-x:auto">
+    <table id="skutable">
+      <thead><tr>
+        <th class="l" data-k="sku">SKU base</th>
+        <th class="l" data-k="prod">Producto</th>
+        <th class="l" data-k="marca">Marca</th>
+        <th data-k="ing">Ingresos</th>
+        <th data-k="q">Q</th>
+        <th data-k="pm">Precio medio</th>
+        <th data-k="dl">Dto lista</th>
+        <th data-k="dr">Dto real</th>
+        <th data-k="md">Margen dto</th>
+        <th data-k="mr">Margen real</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <div class="pager">
+      <button id="pgprev">‹ Anterior</button>
+      <span id="pginfo"></span>
+      <button id="pgnext">Siguiente ›</button>
+    </div>
+    <div class="note">Ingresos = post cupón (ingreso_real) · % dto lista sobre ingreso a lista · % dto real sobre ingreso a lista · % márgenes sobre su propio ingreso (dto → ingresos a special price; real → ingreso post cupón), igual que quedarán definidos en Looker.</div>
+  </div>
+</section>
+
+<!-- ============ HOJA 3 ============ -->
+<section class="page" id="p3">
+  <div class="pagebar"><label for="fmarca_p3">Marca</label>
+    <select id="fmarca_p3"><option value="-1">Todas las marcas</option></select>
+    <span class="hint">filtra por marca para ver los cupones de esa marca y su peso s/ venta</span></div>
+  <div class="cards" id="cards3"></div>
+
+  <div class="panel">
+    <h2>Detalle por cupón</h2>
+    <div class="sub">Cupón = sales rule aplicada en carrito, con o sin código. Filtra por marca arriba para ver el peso s/ venta de esa marca. Usos = órdenes distintas.</div>
+    <div style="overflow-x:auto">
+    <table id="cuptable">
+      <thead><tr>
+        <th class="l" data-k="cup">Cupón</th>
+        <th class="l" data-k="store">Store</th>
+        <th data-k="ord">Usos del cupón</th>
+        <th data-k="ing">Ingresos</th>
+        <th data-k="peso">Peso s/ Vta</th>
+        <th data-k="dpre">% Dscto Pre Cupón</th>
+        <th data-k="mgpre">MG Pre Cupón</th>
+        <th data-k="dcon">% Dscto con Cupón</th>
+        <th data-k="mgpost">MG Vta Post Cupón</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="note" style="margin:14px 20px 0">
+    <b>Peso s/ Vta</b>: ingresos del cupón ÷ venta total del scope (de la marca si está filtrada). ·
+    <b>% Dscto Pre Cupón</b>: descuento de lista antes del cupón (special price vs lista). ·
+    <b>MG Pre Cupón</b>: margen a special price, sin cupón. ·
+    <b>% Dscto con Cupón</b>: descuento total incluyendo el cupón (lista + cupón, sobre precio de lista). ·
+    <b>MG Vta Post Cupón</b>: margen real, con el cupón aplicado.
+  </div>
+
+  <div class="panel">
+    <h2>Ingresos por cupón</h2>
+    <div class="cupbars" id="cupbars"></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+let RAW=null;  // se llena al cargar el Excel
+
+/* =====================================================================
+   build_raw.js — transforma el Excel (hoja "Detalle") en la estructura
+   RAW que consume el dashboard. Réplica exacta de procesar_ventas.py,
+   pero corriendo en el navegador con SheetJS. No requiere Python.
+   ===================================================================== */
+
+const RULE_ID_PREFIX = /^\s*\d+\s*--\s*/; // "5245 -- Camisas BB 2x" -> "Camisas BB 2x"
+
+// Excel serial / Date / string -> Date en UTC (sin drift de zona horaria)
+function toDate(v) {
+  if (v == null || v === "") return null;
+  if (v instanceof Date) return v;
+  if (typeof v === "number") {
+    // serial Excel (días desde 1899-12-30)
+    return new Date(Date.UTC(1899, 11, 30) + Math.round(v * 86400000));
+  }
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
+}
+function pad(n){ return String(n).padStart(2, "0"); }
+function fechaStr(d){ return d.getUTCFullYear() + "-" + pad(d.getUTCMonth()+1) + "-" + pad(d.getUTCDate()); }
+function num(v){ const n = typeof v === "number" ? v : parseFloat(v); return isFinite(n) ? n : 0; }
+function clean(v){ return v == null ? "" : String(v).trim(); }
+
+/* Recibe un ArrayBuffer del xlsx y devuelve el objeto RAW. */
+function buildRAW(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { cellDates: true });
+  if (!wb.SheetNames.includes("Detalle")) {
+    throw new Error('El archivo no tiene la hoja "Detalle". ¿Es el export correcto?');
+  }
+  const raw = XLSX.utils.sheet_to_json(wb.Sheets["Detalle"], { defval: null });
+
+  // --- filtrar complete + dedup por (order_id, sku, order_date, product_total) ---
+  const seen = new Set();
+  const lines = [];
+  for (const r of raw) {
+    if (clean(r.order_status) !== "complete") continue;
+    const d = toDate(r.order_date);
+    if (!d) continue;
+    const key = r.order_id + "|" + r.sku + "|" + d.getTime() + "|" + num(r.product_total);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    r.__date = d;
+    lines.push(r);
+  }
+
+  // diccionarios
+  const stores = [], sIdx = new Map();
+  const marcas = [], mIdx = new Map();
+  const orders = [], oIdx = new Map();
+  const cupones = [], cIdx = new Map();
+  const skus = [], kIdx = new Map(); // sku_base -> idx ; skus[idx] = [sku_base, producto, marcaIdx]
+  const idxOf = (arr, map, key) => {
+    if (map.has(key)) return map.get(key);
+    const i = arr.length; arr.push(key); map.set(key, i); return i;
+  };
+
+  // primera línea de cada orden (para asignar envío una sola vez)
+  const firstLineSeen = new Set();
+
+  const rows = [];
+  let fmin = null, fmax = null;
+
+  for (const r of lines) {
+    const d = r.__date;
+    const fecha = fechaStr(d);
+    const hora = d.getUTCHours();
+    if (fmin === null || fecha < fmin) fmin = fecha;
+    if (fmax === null || fecha > fmax) fmax = fecha;
+
+    const store = clean(r.store) || "—";
+    const marca = clean(r.marca) || "—";
+    const style = clean(r.style);
+    const color = clean(r.color);
+    const skuBase = style + "_" + color;
+    const producto = clean(r.product_name);
+
+    const si = idxOf(stores, sIdx, store);
+    const mi = idxOf(marcas, mIdx, marca);
+    const oi = idxOf(orders, oIdx, String(r.order_id));
+
+    if (!kIdx.has(skuBase)) {
+      const i = skus.length; kIdx.set(skuBase, i);
+      skus.push([skuBase, producto, mi]);
+    }
+    const ki = kIdx.get(skuBase);
+
+    // etiqueta de cupón: código (upper) o nombre de regla sin prefijo de ID
+    let code = clean(r.coupon_code).toUpperCase();
+    let cupIdx = -1;
+    if (code) {
+      cupIdx = idxOf(cupones, cIdx, code);
+    } else {
+      const ruleRaw = clean(r.applied_rule_names);
+      if (ruleRaw) {
+        const rule = ruleRaw.replace(RULE_ID_PREFIX, "").trim();
+        if (rule) cupIdx = idxOf(cupones, cIdx, rule);
+      }
+    }
+
+    const q = num(r.product_quantity);
+    const base = num(r.product_base_price);
+    const final = num(r.product_final_price);
+    const total = num(r.product_total);          // = final * q en el export
+    const dtoCupon = num(r.product_discount_amount);
+    const cost = num(r.product_cost);
+
+    const ingresos = total;                       // special price
+    const ingresoReal = ingresos - dtoCupon;      // post cupón
+    const dtoLista = (base - final) * q;
+    const costo = cost * q;
+
+    // envío: 1 vez por orden
+    let envio = 0;
+    if (!firstLineSeen.has(oi)) {
+      firstLineSeen.add(oi);
+      envio = num(r.shipping_amount);
+    }
+
+    rows.push([
+      si, oi, fecha, hora, ki, q,
+      Math.round(ingresos), Math.round(ingresoReal),
+      Math.round(dtoLista), Math.round(dtoCupon), Math.round(costo),
+      cupIdx, Math.round(envio), mi,
+    ]);
+  }
+
+  return {
+    stores, marcas, cupones, skus, rows,
+    periodo: [fmin, fmax],
+  };
+}
+
+
+
+/* ---------- índices de columnas en RAW.rows ---------- */
+const C={store:0,order:1,fecha:2,hora:3,sku:4,q:5,ing:6,ingr:7,dl:8,dc:9,cost:10,cup:11,env:12,marca:13};
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const fmt$ = n=>"$"+Math.round(n).toLocaleString("es-CL");
+const fmtN = n=>n.toLocaleString("es-CL");
+const fmtP = n=>isFinite(n)?(n*100).toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDigits:1})+"%":"—";
+const fmtC = n=>{ // compacto para cards
+  const a=Math.abs(n);
+  if(a>=1e9) return "$"+(n/1e9).toLocaleString("es-CL",{maximumFractionDigits:2})+" MM";
+  if(a>=1e6) return "$"+(n/1e6).toLocaleString("es-CL",{maximumFractionDigits:1})+" M";
+  return fmt$(n);
+};
+
+/* ---------- filtros ---------- */
+const F={store:-1,d1:null,d2:null,h1:0,h2:23};  // d1/d2 se fijan al cargar el Excel
+const FM={p1:-1,p2:-1,p3:-1};  // filtro de marca independiente por hoja
+
+function initFilters(){
+  const sel=$("#fstore");
+  RAW.stores.forEach((s,i)=>{const o=document.createElement("option");o.value=i;o.textContent=s;sel.appendChild(o);});
+  $("#fdesde").value=F.d1; $("#fdesde").min=RAW.periodo[0]; $("#fdesde").max=RAW.periodo[1];
+  $("#fhasta").value=F.d2; $("#fhasta").min=RAW.periodo[0]; $("#fhasta").max=RAW.periodo[1];
+  sel.onchange=()=>{F.store=+sel.value;render();};
+  ["p1","p2","p3"].forEach(p=>{
+    const ms=document.getElementById("fmarca_"+p);
+    RAW.marcas.forEach((m,i)=>{const o=document.createElement("option");o.value=i;o.textContent=m;ms.appendChild(o);});
+    ms.onchange=()=>{FM[p]=+ms.value;render();};
+  });
+  $("#fdesde").onchange=e=>{F.d1=e.target.value||RAW.periodo[0];render();};
+  $("#fhasta").onchange=e=>{F.d2=e.target.value||RAW.periodo[1];render();};
+  const h1=$("#fh1"),h2=$("#fh2");
+  const hs=()=>{
+    let a=+h1.value,b=+h2.value; if(a>b)[a,b]=[b,a];
+    F.h1=a;F.h2=b;
+    $("#fhval").textContent=String(a).padStart(2,"0")+" – "+String(b).padStart(2,"0")+" h";
+    render();
+  };
+  h1.oninput=hs; h2.oninput=hs;
+  $("#reset").onclick=()=>{
+    F.store=-1;F.d1=RAW.periodo[0];F.d2=RAW.periodo[1];F.h1=0;F.h2=23;
+    sel.value=-1;$("#fdesde").value=F.d1;$("#fhasta").value=F.d2;h1.value=0;h2.value=23;
+    $("#fhval").textContent="00 – 23 h";render();
+  };
+}
+
+function filtered(marcaIdx=-1){
+  if(!RAW)return [];
+  return RAW.rows.filter(r=>
+    (F.store===-1||r[C.store]===F.store)&&
+    (marcaIdx===-1||r[C.marca]===marcaIdx)&&
+    r[C.fecha]>=F.d1&&r[C.fecha]<=F.d2&&
+    r[C.hora]>=F.h1&&r[C.hora]<=F.h2
+  );
+}
+
+/* ---------- agregación global ---------- */
+function agg(rows){
+  const a={ing:0,ingr:0,dl:0,dc:0,cost:0,q:0,env:0,orders:new Set(),ordersCup:new Set()};
+  for(const r of rows){
+    a.ing+=r[C.ing];a.ingr+=r[C.ingr];a.dl+=r[C.dl];a.dc+=r[C.dc];a.cost+=r[C.cost];a.q+=r[C.q];a.env+=r[C.env];
+    a.orders.add(r[C.order]);
+    if(r[C.cup]>=0)a.ordersCup.add(r[C.order]);
+  }
+  a.tx=a.orders.size; a.txCup=a.ordersCup.size;
+  a.ingLista=a.ing+a.dl;
+  a.ingTotal=a.ingr+a.env;  // = order_amount de Magento (productos post-cupón + envío)
+  a.mdto=a.ing-a.cost; a.mreal=a.ingr-a.cost;
+  return a;
+}
+
+/* ---------- HOJA 1 ---------- */
+function card(k,v,s,cls=""){return `<div class="card ${cls}"><div class="k">${k}</div><div class="v num">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;}
+
+function renderH1(rows){
+  const a=agg(rows);
+  $("#cards1").innerHTML=
+    card("Ingresos",fmtC(a.ingTotal),"productos "+fmtC(a.ingr)+" + envío "+fmtC(a.env))+
+    card("Transacciones",fmtN(a.tx),"penetración cupón "+fmtP(a.tx?a.txCup/a.tx:NaN))+
+    card("Ticket promedio",a.tx?fmt$(a.ingTotal/a.tx):"—","ingresos / transacciones")+
+    card("Artículos",fmtN(a.q),(a.tx?(a.q/a.tx).toLocaleString("es-CL",{maximumFractionDigits:2}):"—")+" por ticket")+
+    card("Precio medio artículo",a.q?fmt$(a.ingTotal/a.q):"—","sin envío: "+(a.q?fmt$(a.ingr/a.q):"—"))+
+    card("Margen descuento",fmtP(a.ing?a.mdto/a.ing:NaN),fmtC(a.mdto)+" · special price, sin envío","hl")+
+    card("Margen real",fmtP(a.ingr?a.mreal/a.ingr:NaN),fmtC(a.mreal)+" · con cupones, sin envío","hl");
+
+  // escalera
+  const base=a.ingLista;
+  const segs=[
+    ["lista","Dto lista",a.dl,"vs precio lista"],
+    ["cupon","Dto cupón",a.dc,"sales rules"],
+    ["costo","Costo",a.cost,""],
+    ["margen","Margen real",a.mreal,""],
+  ];
+  $("#ladderbar").innerHTML=base>0?segs.map(([c,,v])=>
+    `<div class="seg ${c}" style="width:${Math.max(v/base*100,0)}%"></div>`).join(""):"";
+  const colors={lista:"var(--slate)",cupon:"var(--amber)",costo:"var(--red)",margen:"var(--petrol)"};
+  $("#ladderleg").innerHTML=
+    `<div class="leg"><span class="dot" style="background:var(--ink)"></span><div class="t"><b>Ingreso a lista</b><span class="num">${fmt$(base)}</span> · 100%</div></div>`+
+    segs.map(([c,n,v])=>`<div class="leg"><span class="dot" style="background:${colors[c]}"></span><div class="t"><b>${n}</b><span class="num">${fmt$(v)}</span> · ${fmtP(base?v/base:NaN)}</div></div>`).join("");
+
+  // serie diaria
+  const byday=new Map();
+  for(const r of rows){
+    const d=r[C.fecha];
+    if(!byday.has(d))byday.set(d,{ingr:0,cost:0});
+    const o=byday.get(d);o.ingr+=r[C.ingr];o.cost+=r[C.cost];
+  }
+  const days=[...byday.keys()].sort();
+  drawDaily(days,days.map(d=>byday.get(d)));
+}
+
+function drawDaily(days,vals){
+  const el=$("#daily");
+  if(!days.length){el.innerHTML='<div class="empty">Sin datos para los filtros seleccionados.</div>';return;}
+  const W=Math.max(el.clientWidth||900,500),H=230,pl=64,pr=54,pt=16,pb=30;
+  const iw=W-pl-pr,ih=H-pt-pb;
+  const max=Math.max(...vals.map(v=>v.ingr))*1.08||1;
+  const bw=Math.min(iw/days.length*0.62,54);
+  let s=`<svg width="${W}" height="${H}" role="img" aria-label="Ingreso real y margen por día">`;
+  // gridlines
+  for(let i=0;i<=3;i++){
+    const y=pt+ih-ih*i/3, v=max*i/3;
+    s+=`<line x1="${pl}" y1="${y}" x2="${W-pr}" y2="${y}" stroke="#E4E9E6"/><text x="${pl-6}" y="${y+3}" text-anchor="end">${fmtC(v)}</text>`;
+  }
+  const x=i=>pl+iw*(i+0.5)/days.length;
+  vals.forEach((v,i)=>{
+    const h=v.ingr/max*ih;
+    s+=`<rect x="${x(i)-bw/2}" y="${pt+ih-h}" width="${bw}" height="${h}" rx="3" fill="var(--petrol)" opacity="0.82"><title>${days[i]}: ${fmt$(v.ingr)}</title></rect>`;
+    s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${days[i].slice(5)}</text>`;
+  });
+  // línea % margen (escala 0–80%)
+  const pM=0.8;
+  const pts=vals.map((v,i)=>{
+    const p=v.ingr?(v.ingr-v.cost)/v.ingr:0;
+    return [x(i),pt+ih-Math.min(p/pM,1)*ih,p];
+  });
+  s+=`<polyline points="${pts.map(p=>p[0]+","+p[1]).join(" ")}" fill="none" stroke="var(--amber)" stroke-width="2.5"/>`;
+  pts.forEach(p=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--amber)"><title>${fmtP(p[2])}</title></circle>`;
+    s+=`<text x="${p[0]}" y="${p[1]-8}" text-anchor="middle" fill="var(--amber)">${fmtP(p[2])}</text>`;});
+  s+="</svg>";
+  el.innerHTML=s;
+}
+
+/* ---------- HOJA 2 ---------- */
+let skuSort={k:"ing",dir:-1},skuPage=0,skuQuery="";
+const PAGE=25;
+
+function skuAgg(rows){
+  const m=new Map();
+  for(const r of rows){
+    const k=r[C.sku];
+    if(!m.has(k))m.set(k,{ing:0,ingr:0,dl:0,dc:0,cost:0,q:0});
+    const o=m.get(k);
+    o.ing+=r[C.ing];o.ingr+=r[C.ingr];o.dl+=r[C.dl];o.dc+=r[C.dc];o.cost+=r[C.cost];o.q+=r[C.q];
+  }
+  return [...m.entries()].map(([k,o])=>{
+    const [sku,prod,mi]=RAW.skus[k];
+    const lista=o.ing+o.dl;
+    return {sku,prod,marca:RAW.marcas[mi],
+      ing:o.ingr,q:o.q,pm:o.q?o.ingr/o.q:0,
+      dl:o.dl,dlp:lista?o.dl/lista:0,
+      dr:o.dl+o.dc,drp:lista?(o.dl+o.dc)/lista:0,
+      md:o.ing-o.cost,mdp:o.ing?(o.ing-o.cost)/o.ing:0,
+      mr:o.ingr-o.cost,mrp:o.ingr?(o.ingr-o.cost)/o.ingr:0};
+  });
+}
+
+function renderH2(rows){
+  let data=skuAgg(rows);
+  if(skuQuery){
+    const q=skuQuery.toLowerCase();
+    data=data.filter(d=>d.sku.toLowerCase().includes(q)||d.prod.toLowerCase().includes(q)||d.marca.toLowerCase().includes(q));
+  }
+  const k=skuSort.k,dir=skuSort.dir;
+  data.sort((a,b)=>{
+    const va=a[k],vb=b[k];
+    return (typeof va==="string"?va.localeCompare(vb):va-vb)*dir;
+  });
+  const pages=Math.max(Math.ceil(data.length/PAGE),1);
+  skuPage=Math.min(skuPage,pages-1);
+  const slice=data.slice(skuPage*PAGE,(skuPage+1)*PAGE);
+  $("#skutable tbody").innerHTML=slice.length?slice.map(d=>`<tr>
+    <td class="l num">${d.sku}</td>
+    <td class="l">${d.prod}</td>
+    <td class="l">${d.marca}</td>
+    <td class="num">${fmt$(d.ing)}</td>
+    <td class="num">${fmtN(d.q)}</td>
+    <td class="num">${fmt$(d.pm)}</td>
+    <td class="num">${fmt$(d.dl)}<span class="pct">${fmtP(d.dlp)}</span></td>
+    <td class="num">${fmt$(d.dr)}<span class="pct">${fmtP(d.drp)}</span></td>
+    <td class="num">${fmt$(d.md)}<span class="pct">${fmtP(d.mdp)}</span></td>
+    <td class="num ${d.mr<0?"neg":"pos"}">${fmt$(d.mr)}<span class="pct">${fmtP(d.mrp)}</span></td>
+  </tr>`).join(""):'<tr><td colspan="10" class="empty l">Sin resultados. Prueba con otro término o limpia los filtros.</td></tr>';
+  $("#skucount").textContent=fmtN(data.length)+" SKUs";
+  $("#pginfo").textContent=`Página ${skuPage+1} de ${pages}`;
+  $("#pgprev").disabled=skuPage===0;
+  $("#pgnext").disabled=skuPage>=pages-1;
+  // flechas de orden
+  document.querySelectorAll("#skutable th").forEach(th=>{
+    const base=th.textContent.replace(/[▲▼\s]+$/,"");
+    th.innerHTML=base+(th.dataset.k===k?` <span class="arr">${dir<0?"▼":"▲"}</span>`:"");
+  });
+}
+
+function initH2(){
+  document.querySelectorAll("#skutable th").forEach(th=>{
+    th.onclick=()=>{
+      const k=th.dataset.k;
+      if(skuSort.k===k)skuSort.dir*=-1;else skuSort={k,dir:["sku","prod","marca"].includes(k)?1:-1};
+      skuPage=0;renderH2(filtered(FM.p2));
+    };
+  });
+  $("#skusearch").oninput=e=>{skuQuery=e.target.value.trim();skuPage=0;renderH2(filtered(FM.p2));};
+  $("#pgprev").onclick=()=>{skuPage--;renderH2(filtered(FM.p2));};
+  $("#pgnext").onclick=()=>{skuPage++;renderH2(filtered(FM.p2));};
+}
+
+/* ---------- HOJA 3 ---------- */
+let cupSort={k:"ing",dir:-1};
+
+function cupAgg(rows,ventaTotal){
+  const m=new Map();
+  for(const r of rows){
+    if(r[C.cup]<0)continue;
+    const k=r[C.cup];
+    if(!m.has(k))m.set(k,{ing:0,ingr:0,dl:0,dc:0,cost:0,orders:new Set(),stores:new Map()});
+    const o=m.get(k);
+    o.ing+=r[C.ing];o.ingr+=r[C.ingr];o.dl+=r[C.dl];o.dc+=r[C.dc];o.cost+=r[C.cost];
+    o.orders.add(r[C.order]);
+    o.stores.set(r[C.store],(o.stores.get(r[C.store])||0)+r[C.ingr]);
+  }
+  return [...m.entries()].map(([k,o])=>{
+    const lista=o.ing+o.dl;                         // ingreso a precio de lista
+    // store dominante (por ingreso) + conteo si hay varias
+    let top=-1,tv=-1; for(const [s,v] of o.stores){ if(v>tv){tv=v;top=s;} }
+    const storeLabel = o.stores.size>1 ? RAW.stores[top]+" +"+(o.stores.size-1) : RAW.stores[top];
+    return {
+      cup:RAW.cupones[k],
+      store:storeLabel,
+      ord:o.orders.size,                            // Usos del cupón = órdenes
+      ing:o.ingr,                                   // Ingresos (post cupón)
+      peso: ventaTotal ? o.ingr/ventaTotal : 0,     // Peso s/ venta del scope (marca si está filtrada)
+      dpre: lista ? o.dl/lista : 0,                 // % dscto pre cupón (solo lista)
+      mgpre: o.ing ? (o.ing-o.cost)/o.ing : 0,      // MG pre cupón (special price)
+      dcon: lista ? (o.dl+o.dc)/lista : 0,          // % dscto con cupón (lista + cupón, total)
+      mgpost: o.ingr ? (o.ingr-o.cost)/o.ingr : 0,  // MG post cupón (margen real)
+    };
+  });
+}
+
+function renderH3(rows){
+  const a=agg(rows);
+  const cupRows=rows.filter(r=>r[C.cup]>=0);
+  const ac=agg(cupRows);
+  $("#cards3").innerHTML=
+    card("Órdenes con cupón",fmtN(a.txCup),"de "+fmtN(a.tx)+" totales","hl2")+
+    card("Penetración",fmtP(a.tx?a.txCup/a.tx:NaN),"órdenes con alguna sales rule","hl2")+
+    card("Ingresos con cupón",fmtC(ac.ingr),fmtP(a.ingr?ac.ingr/a.ingr:NaN)+" del ingreso real")+
+    card("Descuento entregado",fmtC(ac.dc),"por cupones/reglas")+
+    card("Margen real con cupón",fmtP(ac.ingr?ac.mreal/ac.ingr:NaN),fmtC(ac.mreal));
+
+  let data=cupAgg(rows, a.ingr);   // a.ingr = venta total del scope (marca si está filtrada)
+  const k=cupSort.k,dir=cupSort.dir;
+  data.sort((a,b)=>{const va=a[k],vb=b[k];return (typeof va==="string"?va.localeCompare(vb):va-vb)*dir;});
+  $("#cuptable tbody").innerHTML=data.length?data.map(d=>`<tr>
+    <td class="l">${d.cup}</td>
+    <td class="l">${d.store}</td>
+    <td class="num">${fmtN(d.ord)}</td>
+    <td class="num">${fmt$(d.ing)}</td>
+    <td class="num">${fmtP(d.peso)}</td>
+    <td class="num">${fmtP(d.dpre)}</td>
+    <td class="num">${fmtP(d.mgpre)}</td>
+    <td class="num">${fmtP(d.dcon)}</td>
+    <td class="num ${d.mgpost<0?"neg":"pos"}">${fmtP(d.mgpost)}</td>
+  </tr>`).join(""):'<tr><td colspan="9" class="empty l">No hay cupones en el rango filtrado.</td></tr>';
+  document.querySelectorAll("#cuptable th").forEach(th=>{
+    const base=th.textContent.replace(/[▲▼\s]+$/,"");
+    th.innerHTML=base+(th.dataset.k===k?` <span class="arr">${dir<0?"▼":"▲"}</span>`:"");
+  });
+
+  const byIng=[...data].sort((a,b)=>b.ing-a.ing);
+  const max=byIng.length?byIng[0].ing:1;
+  $("#cupbars").innerHTML=byIng.map(d=>`<div class="row">
+    <div class="name" title="${d.cup}">${d.cup}</div>
+    <div class="track"><div class="fill" style="width:${d.ing/max*100}%"></div></div>
+    <div class="val num">${fmtC(d.ing)}</div>
+  </div>`).join("")||'<div class="empty">Sin datos.</div>';
+}
+
+function initH3(){
+  document.querySelectorAll("#cuptable th").forEach(th=>{
+    th.onclick=()=>{
+      const k=th.dataset.k;
+      if(cupSort.k===k)cupSort.dir*=-1;else cupSort={k,dir:(k==="cup"||k==="store")?1:-1};
+      renderH3(filtered(FM.p3));
+    };
+  });
+}
+
+/* ---------- tabs & render ---------- */
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById(t.dataset.page).classList.add("active");
+    render();
+  };
+});
+
+function render(){
+  if(!RAW)return;
+  const a=agg(filtered());
+  $("#scope").textContent=fmtN(a.orders.size)+" órdenes en el período/store";
+  renderH1(filtered(FM.p1));
+  renderH2(filtered(FM.p2));
+  renderH3(filtered(FM.p3));
+}
+
+/* ---------- carga del Excel ---------- */
+const $status=document.getElementById("loadstatus");
+const $bar=document.getElementById("loadbar");
+const $label=document.getElementById("datalabel");
+let booted=false;
+
+function ingest(arrayBuffer, nombre){
+  try{
+    $status.textContent="Procesando "+(nombre||"archivo")+"…";
+    RAW=buildRAW(arrayBuffer);
+    if(!RAW.rows.length){throw new Error("No hay filas con order_status = complete en el archivo.");}
+    // reset de filtros a rango del archivo
+    F.store=-1;F.d1=RAW.periodo[0];F.d2=RAW.periodo[1];F.h1=0;F.h2=23;
+    FM.p1=-1;FM.p2=-1;FM.p3=-1;
+    if(!booted){ initFilters();initH2();initH3();booted=true; }
+    else { rebuildFilterOptions(); }
+    render();
+    $bar.className="loadbar ok";
+    $status.innerHTML="✓ "+RAW.rows.length.toLocaleString("es-CL")+" líneas · "+RAW.periodo[0]+" a "+RAW.periodo[1];
+    $label.textContent=(nombre||"data.xlsx")+" · "+RAW.periodo[0]+" a "+RAW.periodo[1];
+  }catch(e){
+    $bar.className="loadbar err";
+    $status.textContent="⚠ "+e.message;
+    $label.textContent="error al cargar";
+    console.error(e);
+  }
+}
+
+// repuebla selects de store/marca cuando se carga un archivo nuevo tras el primero
+function rebuildFilterOptions(){
+  const sel=document.getElementById("fstore");
+  sel.innerHTML='<option value="-1">Todas las stores</option>';
+  RAW.stores.forEach((s,i)=>{const o=document.createElement("option");o.value=i;o.textContent=s;sel.appendChild(o);});
+  ["p1","p2","p3"].forEach(p=>{
+    const ms=document.getElementById("fmarca_"+p);
+    ms.innerHTML='<option value="-1">Todas las marcas</option>';
+    RAW.marcas.forEach((m,i)=>{const o=document.createElement("option");o.value=i;o.textContent=m;ms.appendChild(o);});
+  });
+  document.getElementById("fdesde").value=F.d1;document.getElementById("fdesde").min=RAW.periodo[0];document.getElementById("fdesde").max=RAW.periodo[1];
+  document.getElementById("fhasta").value=F.d2;document.getElementById("fhasta").min=RAW.periodo[0];document.getElementById("fhasta").max=RAW.periodo[1];
+  document.getElementById("fh1").value=0;document.getElementById("fh2").value=23;document.getElementById("fhval").textContent="00 – 23 h";
+}
+
+// 1) intentar cargar ./data.xlsx (modo GitHub Pages)
+fetch("./data.xlsx").then(r=>{
+  if(!r.ok) throw new Error("no data.xlsx");
+  return r.arrayBuffer();
+}).then(buf=>ingest(buf,"data.xlsx"))
+  .catch(()=>{
+    $bar.className="loadbar";
+    $status.innerHTML='No encontré <code>data.xlsx</code>. Arrastra un Excel o usa el botón para cargarlo.';
+  });
+
+// 2) input manual
+document.getElementById("fileinput").onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  f.arrayBuffer().then(buf=>ingest(buf,f.name));
+};
+
+// 3) drag & drop en toda la ventana
+["dragenter","dragover"].forEach(ev=>window.addEventListener(ev,e=>{e.preventDefault();document.body.classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>window.addEventListener(ev,e=>{e.preventDefault();if(ev!=="dragleave"||e.relatedTarget===null)document.body.classList.remove("drag");}));
+window.addEventListener("drop",e=>{
+  e.preventDefault();document.body.classList.remove("drag");
+  const f=e.dataTransfer.files[0];
+  if(f&&f.name.endsWith(".xlsx")) f.arrayBuffer().then(buf=>ingest(buf,f.name));
+});
+window.addEventListener("resize",()=>renderH1(filtered(FM.p1)));
+</script>
+</body>
+</html>

@@ -343,7 +343,8 @@ function buildRAW(arrayBuffer) {
   const seen = new Set();
   const lines = [];
   for (const r of raw) {
-    if (clean(r.order_status) !== "complete") continue;
+    const st = clean(r.order_status).toLowerCase();
+    if (st !== "complete" && st !== "processing") continue;
     const di = dateInfo(r.order_date);
     if (!di) continue;
     const key = r.order_id + "|" + r.sku + "|" + di.t + "|" + num(r.product_total);
@@ -519,7 +520,7 @@ function card(k,v,s,cls=""){return `<div class="card ${cls}"><div class="k">${k}
 function renderH1(rows){
   const a=agg(rows);
   $("#cards1").innerHTML=
-    card("Ingresos",fmtC(a.ingTotal),"productos "+fmtC(a.ingr)+" + envío "+fmtC(a.env))+
+    card("Ingresos",fmt$(a.ingTotal),"productos "+fmtC(a.ingr)+" + envío "+fmtC(a.env))+
     card("Transacciones",fmtN(a.tx),"penetración cupón "+fmtP(a.tx?a.txCup/a.tx:NaN))+
     card("Ticket promedio",a.tx?fmt$(a.ingTotal/a.tx):"—","ingresos / transacciones")+
     card("Artículos",fmtN(a.q),(a.tx?(a.q/a.tx).toLocaleString("es-CL",{maximumFractionDigits:2}):"—")+" por ticket")+
@@ -771,7 +772,7 @@ function ingest(arrayBuffer, nombre){
   try{
     $status.textContent="Procesando "+(nombre||"archivo")+"…";
     RAW=buildRAW(arrayBuffer);
-    if(!RAW.rows.length){throw new Error("No hay filas con order_status = complete en el archivo.");}
+    if(!RAW.rows.length){throw new Error("No hay filas con order_status complete o processing en el archivo.");}
     // reset de filtros a rango del archivo
     F.store=-1;F.d1=RAW.periodo[0];F.d2=RAW.periodo[1];F.h1=0;F.h2=23;
     FM.p1=-1;FM.p2=-1;FM.p3=-1;

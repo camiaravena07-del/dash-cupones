@@ -161,8 +161,8 @@ body.drag{outline:3px dashed var(--petrol);outline-offset:-6px}
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab active" data-page="p1" role="tab">1 · Resumen</button>
-    <button class="tab" data-page="p2" role="tab">2 · Detalle SKU</button>
-    <button class="tab" data-page="p3" role="tab">3 · Cupones</button>
+    <button class="tab" data-page="p3" role="tab">2 · Cupones</button>
+    <button class="tab" data-page="p2" role="tab">3 · Detalle SKU</button>
   </nav>
 </header>
 
@@ -197,15 +197,6 @@ body.drag{outline:3px dashed var(--petrol);outline-offset:-6px}
     <select id="fmarca_p1"><option value="-1">Todas las marcas</option></select>
     <span class="hint">filtro independiente de esta hoja</span></div>
   <div class="cards" id="cards1"></div>
-
-  <div class="panel">
-    <h2>Escalera de precio</h2>
-    <div class="sub">Cómo se descompone el ingreso a precio de lista hasta llegar al margen real. Base = SUM(ingreso_lista). El envío queda fuera: es ingreso sin costo de courier en el archivo, incluirlo inflaría el margen.</div>
-    <div class="ladder">
-      <div class="bar" id="ladderbar"></div>
-      <div class="legend" id="ladderleg"></div>
-    </div>
-  </div>
 
   <div class="panel">
     <h2>Ingreso real y margen por día</h2>
@@ -520,28 +511,15 @@ function card(k,v,s,cls=""){return `<div class="card ${cls}"><div class="k">${k}
 function renderH1(rows){
   const a=agg(rows);
   $("#cards1").innerHTML=
-    card("Ingresos",fmt$(a.ingTotal),"productos "+fmtC(a.ingr)+" + envío "+fmtC(a.env))+
+    card("Ingreso total",fmt$(a.ingTotal),"productos + despacho","hl")+
+    card("Ingreso por despacho",fmt$(a.env),a.ingTotal?fmtP(a.env/a.ingTotal)+" del total":"")+
+    card("Ingreso solo productos",fmt$(a.ingr),"sin despacho, post cupón")+
     card("Transacciones",fmtN(a.tx),"penetración cupón "+fmtP(a.tx?a.txCup/a.tx:NaN))+
-    card("Ticket promedio",a.tx?fmt$(a.ingTotal/a.tx):"—","ingresos / transacciones")+
+    card("Ticket promedio",a.tx?fmt$(a.ingTotal/a.tx):"—","ingreso total / transacciones")+
     card("Artículos",fmtN(a.q),(a.tx?(a.q/a.tx).toLocaleString("es-CL",{maximumFractionDigits:2}):"—")+" por ticket")+
-    card("Precio medio artículo",a.q?fmt$(a.ingTotal/a.q):"—","sin envío: "+(a.q?fmt$(a.ingr/a.q):"—"))+
-    card("Margen descuento",fmtP(a.ing?a.mdto/a.ing:NaN),fmtC(a.mdto)+" · special price, sin envío","hl")+
-    card("Margen real",fmtP(a.ingr?a.mreal/a.ingr:NaN),fmtC(a.mreal)+" · con cupones, sin envío","hl");
-
-  // escalera
-  const base=a.ingLista;
-  const segs=[
-    ["lista","Dto lista",a.dl,"vs precio lista"],
-    ["cupon","Dto cupón",a.dc,"sales rules"],
-    ["costo","Costo",a.cost,""],
-    ["margen","Margen real",a.mreal,""],
-  ];
-  $("#ladderbar").innerHTML=base>0?segs.map(([c,,v])=>
-    `<div class="seg ${c}" style="width:${Math.max(v/base*100,0)}%"></div>`).join(""):"";
-  const colors={lista:"var(--slate)",cupon:"var(--amber)",costo:"var(--red)",margen:"var(--petrol)"};
-  $("#ladderleg").innerHTML=
-    `<div class="leg"><span class="dot" style="background:var(--ink)"></span><div class="t"><b>Ingreso a lista</b><span class="num">${fmt$(base)}</span> · 100%</div></div>`+
-    segs.map(([c,n,v])=>`<div class="leg"><span class="dot" style="background:${colors[c]}"></span><div class="t"><b>${n}</b><span class="num">${fmt$(v)}</span> · ${fmtP(base?v/base:NaN)}</div></div>`).join("");
+    card("Precio medio artículo",a.q?fmt$(a.ingTotal/a.q):"—","sin despacho: "+(a.q?fmt$(a.ingr/a.q):"—"))+
+    card("Margen pre-cupón",fmtP(a.ing?a.mdto/a.ing:NaN),"solo special price, sobre productos","hl2")+
+    card("Margen real",fmtP(a.ingr?a.mreal/a.ingr:NaN),"con cupones, sobre productos","hl");
 
   // serie diaria
   const byday=new Map();

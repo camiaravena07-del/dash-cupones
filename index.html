@@ -218,6 +218,8 @@ td{padding:13px 12px;border-bottom:1px solid #F1EAF5;text-align:right;white-spac
 td.l{text-align:left;white-space:normal;line-height:1.45}
 #skutable{min-width:1060px}
 #cuptable{min-width:920px}
+#cuptable tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:none;background:var(--morado-soft);color:var(--ink)}
+#cuptable tfoot td.pos{color:var(--morado-ink)}
 #skutable td:nth-child(2){min-width:210px}
 td.num{font-family:"Space Grotesk",monospace;font-variant-numeric:tabular-nums}
 tbody tr:nth-child(even) td{background:#FDFBFE}
@@ -324,6 +326,10 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
   <div class="panel">
     <h2>Detalle por cupón</h2>
     <div class="sub">Cupón = sales rule aplicada en carrito, con o sin código. Usos = órdenes distintas.</div>
+    <div class="tablebar">
+      <input type="search" id="cupsearch" placeholder="Buscar cupón o store…">
+      <span class="count" id="cupcount"></span>
+    </div>
     <div style="overflow-x:auto">
     <table id="cuptable">
       <thead>
@@ -346,6 +352,7 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
         </tr>
       </thead>
       <tbody></tbody>
+      <tfoot></tfoot>
     </table>
     </div>
     <div class="note">
@@ -798,6 +805,7 @@ function initH2(){
 
 /* ---------- HOJA 3 ---------- */
 let cupSort={k:"ing",dir:-1};
+let cupQuery="";
 
 function cupAgg(rows,ventaTotal){
   const m=new Map();
@@ -845,8 +853,14 @@ function renderH3(rows){
     );
 
   let data=cupAgg(rows, a.ingr);   // a.ingr = venta total del scope (marca si está filtrada)
+  // filtro de búsqueda por nombre de cupón o store
+  if(cupQuery){
+    const q=cupQuery.toLowerCase();
+    data=data.filter(d=>d.cup.toLowerCase().includes(q)||(d.store||"").toLowerCase().includes(q));
+  }
   const k=cupSort.k,dir=cupSort.dir;
   data.sort((a,b)=>{const va=a[k],vb=b[k];return (typeof va==="string"?va.localeCompare(vb):va-vb)*dir;});
+  $("#cupcount").textContent=fmtN(data.length)+(data.length===1?" cupón":" cupones");
   $("#cuptable tbody").innerHTML=data.length?data.map(d=>`<tr>
     <td class="l">${d.cup}</td>
     <td class="l">${d.store}</td>
@@ -857,7 +871,26 @@ function renderH3(rows){
     <td class="num">${fmtP(d.mgpre)}</td>
     <td class="num gsep">${fmtP(d.dcon)}</td>
     <td class="num ${d.mgpost<0?"neg":"pos"}">${fmtP(d.mgpost)}</td>
-  </tr>`).join(""):'<tr><td colspan="9" class="empty l">No hay cupones en el rango filtrado.</td></tr>';
+  </tr>`).join(""):'<tr><td colspan="9" class="empty l">No hay cupones para ese filtro.</td></tr>';
+
+  // Fila de totales: sumas de $ y %, RECALCULADOS sobre los cupones visibles
+  // (no promedio simple: pondera por volumen = margen real del conjunto).
+  const cupSet=cupQuery?new Set(data.map(d=>RAW.cupones.indexOf(d.cup))):null;
+  const trows=cupQuery?rows.filter(r=>r[C.cup]>=0&&cupSet.has(r[C.cup])):cupRows;
+  const t=agg(trows);
+  const tLista=t.ing+t.dl;
+  const foot = data.length?`<tr>
+    <td class="l">TOTAL${cupQuery?" (filtro)":""}</td>
+    <td class="l">${data.length} cupón(es)</td>
+    <td class="num">${fmtN(t.orders.size)}</td>
+    <td class="num gsep">${fmt$(t.ingr)}</td>
+    <td class="num">${fmtP(a.ingr?t.ingr/a.ingr:NaN)}</td>
+    <td class="num gsep">${fmtP(tLista?t.dl/tLista:NaN)}</td>
+    <td class="num">${fmtP(t.ing?(t.ing-t.cost)/t.ing:NaN)}</td>
+    <td class="num gsep">${fmtP(tLista?(t.dl+t.dc)/tLista:NaN)}</td>
+    <td class="num ${(t.ingr-t.cost)<0?"neg":"pos"}">${fmtP(t.ingr?(t.ingr-t.cost)/t.ingr:NaN)}</td>
+  </tr>`:"";
+  $("#cuptable tfoot").innerHTML=foot;
   document.querySelectorAll("#cuptable thead tr.cols th").forEach(th=>{
     const base=th.textContent.replace(/[▲▼\s]+$/,"");
     th.innerHTML=base+(th.dataset.k===k?` <span class="arr">${dir<0?"▼":"▲"}</span>`:"");
@@ -873,6 +906,8 @@ function renderH3(rows){
 }
 
 function initH3(){
+  const cs=document.getElementById("cupsearch");
+  if(cs)cs.oninput=e=>{cupQuery=e.target.value.trim();renderH3(filtered(FM.p3));};
   document.querySelectorAll("#cuptable thead tr.cols th").forEach(th=>{
     th.onclick=()=>{
       const k=th.dataset.k;

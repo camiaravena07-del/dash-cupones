@@ -765,10 +765,10 @@ function renderH2(rows){
     <td class="num gsep">${fmt$(d.ing)}</td>
     <td class="num">${fmtN(d.q)}</td>
     <td class="num">${fmt$(d.pm)}</td>
-    <td class="num gsep">${fmt$(d.dl)}<span class="pct">${fmtP(d.dlp)}</span></td>
-    <td class="num">${fmt$(d.dr)}<span class="pct">${fmtP(d.drp)}</span></td>
-    <td class="num gsep">${fmt$(d.md)}<span class="pct">${fmtP(d.mdp)}</span></td>
-    <td class="num ${d.mr<0?"neg":"pos"}">${fmt$(d.mr)}<span class="pct">${fmtP(d.mrp)}</span></td>
+    <td class="num gsep">${fmtP(d.dlp)}</td>
+    <td class="num">${fmtP(d.drp)}</td>
+    <td class="num gsep">${fmtP(d.mdp)}</td>
+    <td class="num ${d.mr<0?"neg":"pos"}">${fmtP(d.mrp)}</td>
     <td class="num gsep">${fmtP(d.mdsi)}</td>
     <td class="num ${d.mrsi<0?"neg":"pos"}">${fmtP(d.mrsi)}</td>
   </tr>`).join(""):'<tr><td colspan="12" class="empty l">Sin resultados. Prueba con otro término o limpia los filtros.</td></tr>';

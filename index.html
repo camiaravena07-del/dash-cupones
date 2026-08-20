@@ -380,7 +380,7 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
           <th class="g1" colspan="3">Producto</th>
           <th class="g2" colspan="3">Venta</th>
           <th colspan="2">Descuento</th>
-          <th class="g4" colspan="2">Margen</th>
+          <th class="g4" colspan="4">Margen</th>
         </tr>
         <tr class="cols">
           <th class="l" data-k="sku">SKU base</th>
@@ -393,6 +393,8 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
           <th data-k="dr">Dto real</th>
           <th class="gsep" data-k="md">Margen dto</th>
           <th data-k="mr">Margen real</th>
+          <th class="gsep" data-k="mdsi">Margen dto s/IVA</th>
+          <th data-k="mrsi">Margen real s/IVA</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -736,7 +738,9 @@ function skuAgg(rows){
       dl:o.dl,dlp:lista?o.dl/lista:0,
       dr:o.dl+o.dc,drp:lista?(o.dl+o.dc)/lista:0,
       md:o.ing-o.cost,mdp:o.ing?(o.ing-o.cost)/o.ing:0,
-      mr:o.ingr-o.cost,mrp:o.ingr?(o.ingr-o.cost)/o.ingr:0};
+      mr:o.ingr-o.cost,mrp:o.ingr?(o.ingr-o.cost)/o.ingr:0,
+      mdsi:o.ing?((o.ing/1.19)-o.cost)/(o.ing/1.19):0,
+      mrsi:o.ingr?((o.ingr/1.19)-o.cost)/(o.ingr/1.19):0};
   });
 }
 
@@ -765,7 +769,9 @@ function renderH2(rows){
     <td class="num">${fmt$(d.dr)}<span class="pct">${fmtP(d.drp)}</span></td>
     <td class="num gsep">${fmt$(d.md)}<span class="pct">${fmtP(d.mdp)}</span></td>
     <td class="num ${d.mr<0?"neg":"pos"}">${fmt$(d.mr)}<span class="pct">${fmtP(d.mrp)}</span></td>
-  </tr>`).join(""):'<tr><td colspan="10" class="empty l">Sin resultados. Prueba con otro término o limpia los filtros.</td></tr>';
+    <td class="num gsep">${fmtP(d.mdsi)}</td>
+    <td class="num ${d.mrsi<0?"neg":"pos"}">${fmtP(d.mrsi)}</td>
+  </tr>`).join(""):'<tr><td colspan="12" class="empty l">Sin resultados. Prueba con otro término o limpia los filtros.</td></tr>';
   $("#skucount").textContent=fmtN(data.length)+" SKUs";
   $("#pginfo").textContent=`Página ${skuPage+1} de ${pages}`;
   $("#pgprev").disabled=skuPage===0;

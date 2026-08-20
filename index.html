@@ -218,6 +218,20 @@ td{padding:13px 12px;border-bottom:1px solid #F1EAF5;text-align:right;white-spac
 td.l{text-align:left;white-space:normal;line-height:1.45}
 #skutable{min-width:1060px}
 #cuptable{min-width:920px}
+.msel{position:relative}
+.msel-btn{font:inherit;font-size:.85rem;font-weight:600;padding:8px 14px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap}
+.msel-btn:hover{border-color:var(--morado)}
+.msel-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:30;width:340px;max-width:90vw;background:#fff;border:1px solid var(--line2);border-radius:10px;box-shadow:0 10px 30px rgba(51,38,61,.18);padding:12px}
+.msel-pop input[type=search]{width:100%;font:inherit;font-size:.85rem;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#FAF7FB;margin-bottom:8px}
+.msel-actions{display:flex;gap:8px;margin-bottom:8px}
+.msel-actions button{font:inherit;font-size:.75rem;font-weight:600;padding:5px 10px;border:1px solid var(--line2);border-radius:6px;background:#fff;color:var(--morado-ink);cursor:pointer}
+.msel-actions button:hover{background:var(--morado-soft)}
+.msel-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.msel-list label{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:.83rem;cursor:pointer}
+.msel-list label:hover{background:var(--morado-soft)}
+.msel-list input[type=checkbox]{accent-color:var(--morado);width:15px;height:15px;flex:none}
+.msel-list .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msel-list .empty{padding:14px;color:var(--muted);font-size:.8rem;text-align:center}
 #cuptable tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:none;background:var(--morado-soft);color:var(--ink)}
 #cuptable tfoot td.pos{color:var(--morado-ink)}
 #skutable td:nth-child(2){min-width:210px}
@@ -327,21 +341,30 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
     <h2>Detalle por cupón</h2>
     <div class="sub">Cupón = sales rule aplicada en carrito, con o sin código. Usos = órdenes distintas.</div>
     <div class="tablebar">
-      <input type="search" id="cupsearch" placeholder="Buscar cupón o store…">
+      <div class="msel" id="cupfilter">
+        <button type="button" class="msel-btn" id="cupfilterBtn">Todos los cupones ▾</button>
+        <div class="msel-pop" id="cupfilterPop" hidden>
+          <input type="search" id="cupfilterSearch" placeholder="Buscar en la lista… (ej. RD)">
+          <div class="msel-actions">
+            <button type="button" id="cupSelAll">Seleccionar todos</button>
+            <button type="button" id="cupSelNone">Ninguno</button>
+          </div>
+          <div class="msel-list" id="cupfilterList"></div>
+        </div>
+      </div>
       <span class="count" id="cupcount"></span>
     </div>
     <div style="overflow-x:auto">
     <table id="cuptable">
       <thead>
         <tr class="groups">
-          <th class="g1" colspan="3">Cupón</th>
+          <th class="g1" colspan="2">Cupón</th>
           <th class="g2" colspan="2">Venta</th>
           <th colspan="2">Pre cupón</th>
           <th class="g4" colspan="2">Con cupón</th>
         </tr>
         <tr class="cols">
           <th class="l" data-k="cup">Nombre</th>
-          <th class="l" data-k="store">Store</th>
           <th data-k="ord">Usos</th>
           <th class="gsep" data-k="ing">Ingresos</th>
           <th data-k="peso">Peso s/ Vta</th>
@@ -360,11 +383,6 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
       <b>Pre cupón</b>: descuento de lista y margen a special price, sin cupón ·
       <b>Con cupón</b>: descuento total sobre precio de lista y margen real con el cupón aplicado.
     </div>
-  </div>
-
-  <div class="panel">
-    <h2>Ingresos por cupón</h2>
-    <div class="cupbars" id="cupbars"></div>
   </div>
 </section>
 
@@ -805,7 +823,8 @@ function initH2(){
 
 /* ---------- HOJA 3 ---------- */
 let cupSort={k:"ing",dir:-1};
-let cupQuery="";
+let cupSel=new Set();      // cupones seleccionados (vacío = todos)
+let cupListQuery="";       // texto del buscador dentro del panel de checkboxes
 
 function cupAgg(rows,ventaTotal){
   const m=new Map();
@@ -853,17 +872,16 @@ function renderH3(rows){
     );
 
   let data=cupAgg(rows, a.ingr);   // a.ingr = venta total del scope (marca si está filtrada)
-  // filtro de búsqueda por nombre de cupón o store
-  if(cupQuery){
-    const q=cupQuery.toLowerCase();
-    data=data.filter(d=>d.cup.toLowerCase().includes(q)||(d.store||"").toLowerCase().includes(q));
-  }
+  const allCups=data.map(d=>d.cup);          // cupones presentes en el scope actual
+  // filtro por selección (checkboxes). cupSel vacío = todos.
+  const sel = cupSel.size ? data.filter(d=>cupSel.has(d.cup)) : data;
+  data = sel;
   const k=cupSort.k,dir=cupSort.dir;
   data.sort((a,b)=>{const va=a[k],vb=b[k];return (typeof va==="string"?va.localeCompare(vb):va-vb)*dir;});
-  $("#cupcount").textContent=fmtN(data.length)+(data.length===1?" cupón":" cupones");
+  const filtering = cupSel.size>0;
+  $("#cupcount").textContent=fmtN(data.length)+(data.length===1?" cupón":" cupones")+(filtering?" (filtrado)":"");
   $("#cuptable tbody").innerHTML=data.length?data.map(d=>`<tr>
     <td class="l">${d.cup}</td>
-    <td class="l">${d.store}</td>
     <td class="num">${fmtN(d.ord)}</td>
     <td class="num gsep">${fmt$(d.ing)}</td>
     <td class="num">${fmtP(d.peso)}</td>
@@ -871,17 +889,16 @@ function renderH3(rows){
     <td class="num">${fmtP(d.mgpre)}</td>
     <td class="num gsep">${fmtP(d.dcon)}</td>
     <td class="num ${d.mgpost<0?"neg":"pos"}">${fmtP(d.mgpost)}</td>
-  </tr>`).join(""):'<tr><td colspan="9" class="empty l">No hay cupones para ese filtro.</td></tr>';
+  </tr>`).join(""):'<tr><td colspan="8" class="empty l">No hay cupones para ese filtro.</td></tr>';
 
   // Fila de totales: sumas de $ y %, RECALCULADOS sobre los cupones visibles
   // (no promedio simple: pondera por volumen = margen real del conjunto).
-  const cupSet=cupQuery?new Set(data.map(d=>RAW.cupones.indexOf(d.cup))):null;
-  const trows=cupQuery?rows.filter(r=>r[C.cup]>=0&&cupSet.has(r[C.cup])):cupRows;
+  const cupIdxSet=new Set(data.map(d=>RAW.cupones.indexOf(d.cup)));
+  const trows=rows.filter(r=>r[C.cup]>=0&&cupIdxSet.has(r[C.cup]));
   const t=agg(trows);
   const tLista=t.ing+t.dl;
   const foot = data.length?`<tr>
-    <td class="l">TOTAL${cupQuery?" (filtro)":""}</td>
-    <td class="l">${data.length} cupón(es)</td>
+    <td class="l">TOTAL${filtering?" (filtro)":""} · ${data.length} cupón(es)</td>
     <td class="num">${fmtN(t.orders.size)}</td>
     <td class="num gsep">${fmt$(t.ingr)}</td>
     <td class="num">${fmtP(a.ingr?t.ingr/a.ingr:NaN)}</td>
@@ -891,27 +908,62 @@ function renderH3(rows){
     <td class="num ${(t.ingr-t.cost)<0?"neg":"pos"}">${fmtP(t.ingr?(t.ingr-t.cost)/t.ingr:NaN)}</td>
   </tr>`:"";
   $("#cuptable tfoot").innerHTML=foot;
+  // refrescar la lista de checkboxes según el scope actual
+  renderCupFilter(allCups);
   document.querySelectorAll("#cuptable thead tr.cols th").forEach(th=>{
     const base=th.textContent.replace(/[▲▼\s]+$/,"");
     th.innerHTML=base+(th.dataset.k===k?` <span class="arr">${dir<0?"▼":"▲"}</span>`:"");
   });
 
-  const byIng=[...data].sort((a,b)=>b.ing-a.ing);
-  const max=byIng.length?byIng[0].ing:1;
-  $("#cupbars").innerHTML=byIng.map(d=>`<div class="row">
-    <div class="name" title="${d.cup}">${d.cup}</div>
-    <div class="track"><div class="fill" style="width:${d.ing/max*100}%"></div></div>
-    <div class="val num">${fmtC(d.ing)}</div>
-  </div>`).join("")||'<div class="empty">Sin datos.</div>';
+  $("#cuptable tfoot").innerHTML=foot;
+}
+
+// Construye/actualiza la lista de checkboxes del filtro de cupones.
+// `available` = cupones presentes en el scope actual (período/store/marca).
+let cupAvailable=[];
+function renderCupFilter(available){
+  cupAvailable = available.slice().sort((a,b)=>a.localeCompare(b));
+  // limpiar selección de cupones que ya no existen en el scope
+  for(const c of [...cupSel]) if(!cupAvailable.includes(c)) cupSel.delete(c);
+  const btn=document.getElementById("cupfilterBtn");
+  if(btn) btn.textContent = (cupSel.size? cupSel.size+" seleccionado(s)" : "Todos los cupones") + " ▾";
+  const list=document.getElementById("cupfilterList");
+  if(!list) return;
+  const q=cupListQuery.toLowerCase();
+  const shown=cupAvailable.filter(c=>!q||c.toLowerCase().includes(q));
+  list.innerHTML = shown.length ? shown.map(c=>{
+    const checked=cupSel.has(c)?"checked":"";
+    const safe=c.replace(/"/g,"&quot;").replace(/</g,"&lt;");
+    return `<label><input type="checkbox" value="${safe}" ${checked}><span class="cn" title="${safe}">${safe}</span></label>`;
+  }).join("") : '<div class="empty">Sin cupones que coincidan.</div>';
+  // wire de cada checkbox
+  list.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.onchange=()=>{ cb.checked?cupSel.add(cb.value):cupSel.delete(cb.value); renderH3(filtered(FM.p3)); };
+  });
 }
 
 function initH3(){
-  const cs=document.getElementById("cupsearch");
-  if(cs)cs.oninput=e=>{cupQuery=e.target.value.trim();renderH3(filtered(FM.p3));};
+  const btn=document.getElementById("cupfilterBtn");
+  const pop=document.getElementById("cupfilterPop");
+  if(btn&&pop){
+    btn.onclick=(e)=>{ e.stopPropagation(); pop.hidden=!pop.hidden; };
+    pop.onclick=(e)=>e.stopPropagation();
+    document.addEventListener("click",()=>{ if(!pop.hidden) pop.hidden=true; });
+  }
+  const ls=document.getElementById("cupfilterSearch");
+  if(ls) ls.oninput=e=>{ cupListQuery=e.target.value.trim(); renderCupFilter(cupAvailable); };
+  const selAll=document.getElementById("cupSelAll");
+  if(selAll) selAll.onclick=()=>{ // selecciona los que coinciden con el buscador (o todos)
+    const q=cupListQuery.toLowerCase();
+    cupAvailable.filter(c=>!q||c.toLowerCase().includes(q)).forEach(c=>cupSel.add(c));
+    renderH3(filtered(FM.p3));
+  };
+  const selNone=document.getElementById("cupSelNone");
+  if(selNone) selNone.onclick=()=>{ cupSel.clear(); renderH3(filtered(FM.p3)); };
   document.querySelectorAll("#cuptable thead tr.cols th").forEach(th=>{
     th.onclick=()=>{
       const k=th.dataset.k;
-      if(cupSort.k===k)cupSort.dir*=-1;else cupSort={k,dir:(k==="cup"||k==="store")?1:-1};
+      if(cupSort.k===k)cupSort.dir*=-1;else cupSort={k,dir:(k==="cup")?1:-1};
       renderH3(filtered(FM.p3));
     };
   });

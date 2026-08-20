@@ -648,11 +648,15 @@ function renderH1(rows){
         <div class="big num">${fmtP(a.ingr?a.mreal/a.ingr:NaN)}</div>
         <div class="subs">
           <div><span>Margen pre-cupón</span><b class="num">${fmtP(a.ing?a.mdto/a.ing:NaN)}</b></div>
-          <div><span>Sobre ingreso de productos</span><b class="num">${fmt$(a.ingr)}</b></div>
+          <div><span>Margen real sin IVA (prov.)</span><b class="num">${fmtP(a.ingr?(a.ingr/1.19-a.cost)/(a.ingr/1.19):NaN)}</b></div>
         </div>
       </div>
     </div>
     <div class="blocks">
+      ${block("b-morado","Margen sin IVA · provisional","venta neteada ÷ 1,19 · costo Oracle sin tocar",
+        card("Margen real sin IVA",fmtP(a.ingr?(a.ingr/1.19-a.cost)/(a.ingr/1.19):NaN),"por validar con finanzas")+
+        card("Margen pre-cupón sin IVA",fmtP(a.ing?(a.ing/1.19-a.cost)/(a.ing/1.19):NaN),"por validar con finanzas")
+      )}
       ${block("b-rosa","Venta","sin despacho, post cupón",
         card("Ingreso solo productos",fmt$(a.ingr),"base de todos los márgenes")+
         card("Ingreso por despacho",fmt$(a.env),a.ingTotal?fmtP(a.env/a.ingTotal)+" del ingreso total":"")

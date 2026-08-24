@@ -723,24 +723,15 @@ function renderH1(rows){
         </div>
       </div>
       <div class="hero-card morado">
-        <div class="k">Margen real (sin IVA)</div>
+        <div class="k">Margen total (sin IVA)</div>
         <div class="big num">${fmtP(mrSinDesp)}</div>
         <div class="subs">
-          <div><span>Real sin IVA, con despacho</span><b class="num">${fmtP(mrConDesp)}</b></div>
+          <div><span>Total sin IVA, con despacho</span><b class="num">${fmtP(mrConDesp)}</b></div>
           <div><span>Pre-cupón sin IVA, sin despacho</span><b class="num">${fmtP(mpreSinDesp)}</b></div>
         </div>
       </div>
     </div>
     <div class="blocks">
-      ${block("b-morado","Márgenes sin IVA","venta neteada ÷ 1,19 · costo unitario × cantidad · en %",
-        card("Margen real sin despacho",fmtP(mrSinDesp),"sobre productos post cupón")+
-        card("Margen real con despacho",fmtP(mrConDesp),"incluye ingreso de despacho")+
-        card("Margen pre-cupón sin despacho",fmtP(mpreSinDesp),"a special price, antes del cupón")
-      )}
-      ${block("b-rosa","Venta","sin despacho, post cupón",
-        card("Ingreso solo productos",fmt$(a.ingr),"base de los márgenes")+
-        card("Ingreso por despacho",fmt$(a.env),a.ingTotal?fmtP(a.env/a.ingTotal)+" del ingreso total":"")
-      )}
       ${block("b-lila","Cupones","detalle en la hoja 2",
         card("Órdenes con cupón",fmtN(a.txCup),"de "+fmtN(a.tx)+" totales")+
         card("% de pedidos con reglas de cupones aplicados",fmtP(a.tx?a.txCup/a.tx:NaN),"")
@@ -924,12 +915,12 @@ function renderH3(rows){
       card("Órdenes con cupón",fmtN(a.txCup),"de "+fmtN(a.tx)+" totales")+
       card("% de pedidos con reglas de cupones aplicados",fmtP(a.tx?a.txCup/a.tx:NaN),"")
     )+
-    block("b-morado","Impacto","valores sin despacho · márgenes sin IVA",
+    block("b-morado","Impacto","solo órdenes con cupón · sin despacho · márgenes sin IVA",
       card("Ingresos con cupón",fmt$(ac.ingr),"post cupón, sin despacho")+
       card("% cupones / ingresos",fmtP(a.ingr?ac.ingr/a.ingr:NaN),"sobre ingreso de productos")+
       card("Descuento entregado",fmt$(ac.dc),"por cupones y reglas")+
-      card("MG pre cupón (sin IVA)",fmtP(mgPreCup),"antes del cupón")+
-      card("MG post cupón (sin IVA)",fmtP(mgPostCup),"con el cupón aplicado")
+      card("MG pre cupón (sin IVA)",fmtP(mgPreCup),"órdenes con cupón, antes del cupón")+
+      card("MG post cupón (sin IVA)",fmtP(mgPostCup),"órdenes con cupón, con el cupón")
     );
 
   let data=cupAgg(rows, a.ingr);   // a.ingr = venta total del scope (marca si está filtrada)

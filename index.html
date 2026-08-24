@@ -218,6 +218,17 @@ td{padding:13px 12px;border-bottom:1px solid #F1EAF5;text-align:right;white-spac
 td.l{text-align:left;white-space:normal;line-height:1.45}
 #skutable{min-width:1060px}
 #cuptable{min-width:920px}
+#ordtable th.exp,#ordtable td.exp{width:34px;text-align:center;padding-left:4px;padding-right:4px}
+.expbtn{border:none;background:none;cursor:pointer;font-size:.9rem;color:var(--morado);line-height:1;padding:4px 6px;border-radius:6px}
+.expbtn:hover{background:var(--morado-soft)}
+#ordtable tr.detailrow>td{background:var(--morado-soft);padding:0}
+.orddetail{padding:10px 14px}
+.detailtbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line2);border-radius:8px;overflow:hidden;margin-top:0}
+.detailtbl th{font-size:.66rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:right;padding:7px 10px;border-bottom:1px solid var(--line2);background:var(--rosa-soft)}
+.detailtbl th.l{text-align:left}
+.detailtbl td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;font-size:.8rem;white-space:nowrap}
+.detailtbl td.l{text-align:left;white-space:normal}
+.detailtbl tr:last-child td{border-bottom:none}
 .alert{background:#FFF4E0;border:1px solid #F0D28A;color:#7A5A12;border-radius:8px;padding:9px 14px;font-size:.82rem;margin-bottom:10px}
 .msel{position:relative}
 .msel-btn{font:inherit;font-size:.85rem;font-weight:600;padding:8px 14px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap}
@@ -401,21 +412,26 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
     <h2>Detalle por órdenes</h2>
     <div class="sub">Cada fila es una orden. ID Magento (empieza con C) y su ID Oracle. Click en un encabezado para ordenar.</div>
     <div class="tablebar">
-      <input type="search" id="ordsearch" placeholder="Buscar ID Magento, ID Oracle o store…">
+      <input type="search" id="ordsearch" placeholder="Buscar ID Magento, ID Oracle o marca…">
       <span class="count" id="ordcount"></span>
     </div>
     <div style="overflow-x:auto">
     <table id="ordtable">
       <thead>
         <tr class="cols">
+          <th class="exp"></th>
           <th class="l" data-k="mag">ID Magento</th>
           <th class="l" data-k="ora">ID Oracle</th>
           <th class="l" data-k="fecha">Fecha</th>
-          <th class="l" data-k="store">Store</th>
+          <th class="l" data-k="marca">Marca</th>
           <th data-k="q">Artículos</th>
           <th class="gsep" data-k="ingBruto">Ingreso bruto</th>
           <th data-k="ing">Ingreso neto</th>
           <th data-k="env">Despacho</th>
+          <th class="gsep" data-k="dpre">Dto pre cupón</th>
+          <th data-k="dpost">Dto post cupón</th>
+          <th class="gsep" data-k="mgpre">Margen pre cupón</th>
+          <th data-k="mgpost">Margen post cupón</th>
           <th class="gsep" data-k="cup">Cupón</th>
         </tr>
       </thead>
@@ -427,7 +443,7 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
       <span id="ordinfo"></span>
       <button id="ordnext">Siguiente ›</button>
     </div>
-    <div class="note">Ingreso bruto = a special price (antes del cupón) · Ingreso neto = post cupón · ambos sin despacho. La columna Despacho es el flete de esa orden.</div>
+    <div class="note">Ingreso bruto = a special price (antes del cupón) · Ingreso neto = post cupón · ambos sin despacho. Dto y Margen (pre/post cupón) en % · márgenes sin IVA. Marca dominante de la orden (+N si hay más).</div>
   </div>
 </section>
 
@@ -1040,49 +1056,109 @@ document.querySelectorAll(".tab").forEach(t=>{
 
 /* ---------- HOJA · DETALLE POR ÓRDENES ---------- */
 let ordSort={k:"ing",dir:-1}, ordPage=0, ordQuery="";
+let ordExpanded=new Set();   // órdenes (oi) expandidas
+let ordCurrentRows=[];       // rows del scope actual, para armar el detalle
 const ORDPAGE=25;
 
+// Detalle de líneas de una orden (se muestra al expandir)
+function ordDetail(oi, rows){
+  const IVA=1.19;
+  const lines=rows.filter(r=>r[C.order]===oi);
+  if(!lines.length) return '<div class="empty">Sin líneas.</div>';
+  const rowsHtml=lines.map(r=>{
+    const [sku,prod,mi]=RAW.skus[r[C.sku]];
+    const lista=r[C.ing]+r[C.dl];
+    const mgpost=r[C.ingr]?((r[C.ingr]/IVA)-r[C.cost])/(r[C.ingr]/IVA):0;
+    const cup=r[C.cup]>=0?RAW.cupones[r[C.cup]]:"—";
+    return `<tr>
+      <td class="l num">${sku}</td>
+      <td class="l">${prod}</td>
+      <td class="l">${RAW.marcas[mi]}</td>
+      <td class="num">${fmtN(r[C.q])}</td>
+      <td class="num">${fmt$(r[C.ing])}</td>
+      <td class="num">${fmt$(r[C.ingr])}</td>
+      <td class="num">${fmtP(lista?(r[C.dl]+r[C.dc])/lista:0)}</td>
+      <td class="num ${mgpost<0?"neg":"pos"}">${fmtP(mgpost)}</td>
+      <td class="l">${cup}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="orddetail"><table class="detailtbl">
+    <thead><tr>
+      <th class="l">SKU</th><th class="l">Producto</th><th class="l">Marca</th>
+      <th>Q</th><th>Ing. bruto</th><th>Ing. neto</th><th>Dto total</th><th>Margen</th><th class="l">Cupón</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table></div>`;
+}
+
 function ordAgg(rows){
+  const IVA=1.19;
   const m=new Map();
   for(const r of rows){
     const oi=r[C.order];
-    if(!m.has(oi))m.set(oi,{ing:0,ingBruto:0,env:0,q:0,fecha:r[C.fecha],store:r[C.store],cups:new Set()});
+    if(!m.has(oi))m.set(oi,{ing:0,ingBruto:0,env:0,q:0,dl:0,dc:0,cost:0,fecha:r[C.fecha],marcas:new Map(),cups:new Set()});
     const o=m.get(oi);
     o.ing+=r[C.ingr]; o.ingBruto+=r[C.ing]; o.env+=r[C.env]; o.q+=r[C.q];
+    o.dl+=r[C.dl]; o.dc+=r[C.dc]; o.cost+=r[C.cost];
+    o.marcas.set(r[C.marca],(o.marcas.get(r[C.marca])||0)+r[C.ingr]);
     if(r[C.cup]>=0)o.cups.add(RAW.cupones[r[C.cup]]);
     if(r[C.fecha]<o.fecha)o.fecha=r[C.fecha];
   }
-  return [...m.entries()].map(([oi,o])=>({
-    mag: RAW.orders[oi],
-    ora: (RAW.oracles[oi]||"—"),
-    fecha:o.fecha, store:RAW.stores[o.store],
-    q:o.q, ing:o.ing, ingBruto:o.ingBruto, env:o.env,
-    cup: o.cups.size? (o.cups.size>1? o.cups.size+" cupones" : [...o.cups][0]) : "—",
-  }));
+  return [...m.entries()].map(([oi,o])=>{
+    const lista=o.ingBruto+o.dl;                    // ingreso a precio de lista
+    // marca dominante (por ingreso) + "+N" si hay más
+    let top=-1,tv=-1; for(const [mi,v] of o.marcas){ if(v>tv){tv=v;top=mi;} }
+    const marca = o.marcas.size>1 ? RAW.marcas[top]+" +"+(o.marcas.size-1) : RAW.marcas[top];
+    return {
+      oi,
+      mag: RAW.orders[oi],
+      ora: (RAW.oracles[oi]||"—"),
+      fecha:o.fecha, marca,
+      q:o.q, ing:o.ing, ingBruto:o.ingBruto, env:o.env,
+      dpre: lista? o.dl/lista : 0,                  // % dscto pre cupón (solo lista)
+      dpost: lista? (o.dl+o.dc)/lista : 0,          // % dscto con cupón (lista + cupón)
+      mgpre: o.ingBruto? ((o.ingBruto/IVA)-o.cost)/(o.ingBruto/IVA) : 0,   // margen pre cupón sin IVA
+      mgpost: o.ing? ((o.ing/IVA)-o.cost)/(o.ing/IVA) : 0,                 // margen post cupón sin IVA
+      cup: o.cups.size? (o.cups.size>1? o.cups.size+" cupones" : [...o.cups][0]) : "—",
+    };
+  });
 }
 
 function renderH4(rows){
   let data=ordAgg(rows);
   if(ordQuery){
     const q=ordQuery.toLowerCase();
-    data=data.filter(d=>d.mag.toLowerCase().includes(q)||String(d.ora).toLowerCase().includes(q)||d.store.toLowerCase().includes(q)||d.cup.toLowerCase().includes(q));
+    data=data.filter(d=>d.mag.toLowerCase().includes(q)||String(d.ora).toLowerCase().includes(q)||d.marca.toLowerCase().includes(q)||d.cup.toLowerCase().includes(q));
   }
   const k=ordSort.k,dir=ordSort.dir;
   data.sort((a,b)=>{const va=a[k],vb=b[k];return (typeof va==="string"?String(va).localeCompare(String(vb)):va-vb)*dir;});
   const pages=Math.max(Math.ceil(data.length/ORDPAGE),1);
   ordPage=Math.min(ordPage,pages-1);
   const slice=data.slice(ordPage*ORDPAGE,(ordPage+1)*ORDPAGE);
-  $("#ordtable tbody").innerHTML=slice.length?slice.map(d=>`<tr>
+  ordCurrentRows = rows;   // guardar para armar el detalle al expandir
+  $("#ordtable tbody").innerHTML=slice.length?slice.map(d=>{
+    const open=ordExpanded.has(d.oi);
+    return `<tr class="ordrow" data-oi="${d.oi}">
+    <td class="exp"><button type="button" class="expbtn" aria-label="Ver líneas">${open?"▾":"▸"}</button></td>
     <td class="l num">${d.mag}</td>
     <td class="l num">${d.ora}</td>
     <td class="l num">${d.fecha}</td>
-    <td class="l">${d.store}</td>
+    <td class="l">${d.marca}</td>
     <td class="num">${fmtN(d.q)}</td>
     <td class="num gsep">${fmt$(d.ingBruto)}</td>
     <td class="num">${fmt$(d.ing)}</td>
     <td class="num">${fmt$(d.env)}</td>
+    <td class="num gsep">${fmtP(d.dpre)}</td>
+    <td class="num">${fmtP(d.dpost)}</td>
+    <td class="num gsep">${fmtP(d.mgpre)}</td>
+    <td class="num ${d.mgpost<0?"neg":"pos"}">${fmtP(d.mgpost)}</td>
     <td class="l gsep">${d.cup}</td>
-  </tr>`).join(""):'<tr><td colspan="9" class="empty l">Sin órdenes para ese filtro.</td></tr>';
+  </tr>`+(open?`<tr class="detailrow"><td></td><td colspan="13">${ordDetail(d.oi,rows)}</td></tr>`:"");
+  }).join(""):'<tr><td colspan="14" class="empty l">Sin órdenes para ese filtro.</td></tr>';
+  // wire de los botones de expandir
+  document.querySelectorAll("#ordtable .expbtn").forEach(b=>{
+    b.onclick=()=>{ const oi=+b.closest("tr").dataset.oi; ordExpanded.has(oi)?ordExpanded.delete(oi):ordExpanded.add(oi); renderH4(ordCurrentRows); };
+  });
   $("#ordcount").textContent=fmtN(data.length)+(data.length===1?" orden":" órdenes");
   $("#ordinfo").textContent=`Página ${ordPage+1} de ${pages}`;
   $("#ordprev").disabled=ordPage===0;
@@ -1094,10 +1170,11 @@ function renderH4(rows){
 }
 
 function initH4(){
-  document.querySelectorAll("#ordtable th").forEach(th=>{
+  document.querySelectorAll("#ordtable thead th").forEach(th=>{
+    if(!th.dataset.k) return;
     th.onclick=()=>{
       const key=th.dataset.k;
-      if(ordSort.k===key)ordSort.dir*=-1;else ordSort={k:key,dir:["mag","ora","fecha","store","cup"].includes(key)?1:-1};
+      if(ordSort.k===key)ordSort.dir*=-1;else ordSort={k:key,dir:["mag","ora","fecha","marca","cup"].includes(key)?1:-1};
       ordPage=0;renderH4(filtered(FM.p4));
     };
   });

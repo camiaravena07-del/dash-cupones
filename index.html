@@ -218,6 +218,7 @@ td{padding:13px 12px;border-bottom:1px solid #F1EAF5;text-align:right;white-spac
 td.l{text-align:left;white-space:normal;line-height:1.45}
 #skutable{min-width:1060px}
 #cuptable{min-width:920px}
+.alert{background:#FFF4E0;border:1px solid #F0D28A;color:#7A5A12;border-radius:8px;padding:9px 14px;font-size:.82rem;margin-bottom:10px}
 .msel{position:relative}
 .msel-btn{font:inherit;font-size:.85rem;font-weight:600;padding:8px 14px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap}
 .msel-btn:hover{border-color:var(--morado)}
@@ -233,7 +234,8 @@ td.l{text-align:left;white-space:normal;line-height:1.45}
 .msel-list .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .msel-list .empty{padding:14px;color:var(--muted);font-size:.8rem;text-align:center}
 #cuptable tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:none;background:var(--morado-soft);color:var(--ink)}
-#cuptable tfoot td.pos{color:var(--morado-ink)}
+#cuptable tr.totalrow td{font-weight:700;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);background:var(--morado-soft);color:var(--ink)}
+#cuptable tr.totalrow td.pos{color:var(--morado-ink)}
 #skutable td:nth-child(2){min-width:210px}
 td.num{font-family:"Space Grotesk",monospace;font-variant-numeric:tabular-nums}
 tbody tr:nth-child(even) td{background:#FDFBFE}
@@ -287,7 +289,8 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
   <nav class="tabs" role="tablist">
     <button class="tab active" data-page="p1" role="tab">1 · Resumen</button>
     <button class="tab" data-page="p3" role="tab">2 · Cupones</button>
-    <button class="tab" data-page="p2" role="tab">3 · Detalle SKU</button>
+    <button class="tab" data-page="p4" role="tab">3 · Órdenes</button>
+    <button class="tab" data-page="p2" role="tab">4 · Detalle SKU</button>
   </nav>
 </header>
 
@@ -325,7 +328,7 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
 
   <div class="panel">
     <h2>Ingreso real y margen por día</h2>
-    <div class="sub">Barras = ingreso real diario · línea = % margen real</div>
+    <div class="sub">Barras = ingreso diario sin despacho · línea = % margen real (sin IVA)</div>
     <div id="daily"></div>
   </div>
 </section>
@@ -339,6 +342,7 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
 
   <div class="panel">
     <h2>Detalle por cupón</h2>
+    <div class="alert">⚠️ Todos los cálculos de esta hoja son <b>sin ingresos por despacho</b>. Márgenes <b>sin IVA</b>.</div>
     <div class="sub">Cupón = sales rule aplicada en carrito, con o sin código. Usos = órdenes distintas.</div>
     <div class="tablebar">
       <div class="msel" id="cupfilter">
@@ -358,15 +362,17 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
     <table id="cuptable">
       <thead>
         <tr class="groups">
-          <th class="g1" colspan="2">Cupón</th>
-          <th class="g2" colspan="2">Venta</th>
+          <th class="g1" colspan="3">Cupón</th>
+          <th class="g2" colspan="3">Venta</th>
           <th colspan="2">Pre cupón</th>
           <th class="g4" colspan="2">Con cupón</th>
         </tr>
         <tr class="cols">
           <th class="l" data-k="cup">Nombre</th>
+          <th class="l" data-k="store">Store</th>
           <th data-k="ord">Usos</th>
-          <th class="gsep" data-k="ing">Ingresos</th>
+          <th class="gsep" data-k="ingBruto">Ingreso bruto</th>
+          <th data-k="ing">Ingreso neto</th>
           <th data-k="peso">Peso s/ Vta</th>
           <th class="gsep" data-k="dpre">% Dscto</th>
           <th data-k="mgpre">Margen</th>
@@ -383,6 +389,45 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
       <b>Pre cupón</b>: descuento de lista y margen a special price, sin cupón ·
       <b>Con cupón</b>: descuento total sobre precio de lista y margen real con el cupón aplicado.
     </div>
+  </div>
+</section>
+
+<!-- ============ HOJA · DETALLE POR ÓRDENES ============ -->
+<section class="page" id="p4">
+  <div class="pagebar"><label for="fmarca_p4">Marca</label>
+    <select id="fmarca_p4"><option value="-1">Todas las marcas</option></select>
+    <span class="hint">filtro independiente de esta hoja</span></div>
+  <div class="panel">
+    <h2>Detalle por órdenes</h2>
+    <div class="sub">Cada fila es una orden. ID Magento (empieza con C) y su ID Oracle. Click en un encabezado para ordenar.</div>
+    <div class="tablebar">
+      <input type="search" id="ordsearch" placeholder="Buscar ID Magento, ID Oracle o store…">
+      <span class="count" id="ordcount"></span>
+    </div>
+    <div style="overflow-x:auto">
+    <table id="ordtable">
+      <thead>
+        <tr class="cols">
+          <th class="l" data-k="mag">ID Magento</th>
+          <th class="l" data-k="ora">ID Oracle</th>
+          <th class="l" data-k="fecha">Fecha</th>
+          <th class="l" data-k="store">Store</th>
+          <th data-k="q">Artículos</th>
+          <th class="gsep" data-k="ingBruto">Ingreso bruto</th>
+          <th data-k="ing">Ingreso neto</th>
+          <th data-k="env">Despacho</th>
+          <th class="gsep" data-k="cup">Cupón</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <div class="pager">
+      <button id="ordprev">‹ Anterior</button>
+      <span id="ordinfo"></span>
+      <button id="ordnext">Siguiente ›</button>
+    </div>
+    <div class="note">Ingreso bruto = a special price (antes del cupón) · Ingreso neto = post cupón · ambos sin despacho. La columna Despacho es el flete de esa orden.</div>
   </div>
 </section>
 
@@ -507,6 +552,7 @@ function buildRAW(arrayBuffer) {
 
   // primera línea de cada orden (para asignar envío una sola vez)
   const firstLineSeen = new Set();
+  const oracles = [];   // oracles[oi] = oracle_id de la orden
 
   const rows = [];
   let fmin = null, fmax = null;
@@ -527,6 +573,7 @@ function buildRAW(arrayBuffer) {
     const si = idxOf(stores, sIdx, store);
     const mi = idxOf(marcas, mIdx, marca);
     const oi = idxOf(orders, oIdx, String(r.order_id));
+    if (oracles[oi] === undefined) oracles[oi] = clean(r.oracle_id);
 
     if (!kIdx.has(skuBase)) {
       const i = skus.length; kIdx.set(skuBase, i);
@@ -575,7 +622,7 @@ function buildRAW(arrayBuffer) {
   }
 
   return {
-    stores, marcas, cupones, skus, rows,
+    stores, marcas, cupones, skus, rows, orders, oracles,
     periodo: [fmin, fmax],
   };
 }
@@ -599,7 +646,7 @@ const fmtC = n=>{ // compacto para cards
 
 /* ---------- filtros ---------- */
 const F={store:-1,d1:null,d2:null,h1:0,h2:23};  // d1/d2 se fijan al cargar el Excel
-const FM={p1:-1,p2:-1,p3:-1};  // filtro de marca independiente por hoja
+const FM={p1:-1,p2:-1,p3:-1,p4:-1};  // filtro de marca independiente por hoja
 
 function initFilters(){
   const sel=$("#fstore");
@@ -607,7 +654,7 @@ function initFilters(){
   $("#fdesde").value=F.d1; $("#fdesde").min=RAW.periodo[0]; $("#fdesde").max=RAW.periodo[1];
   $("#fhasta").value=F.d2; $("#fhasta").min=RAW.periodo[0]; $("#fhasta").max=RAW.periodo[1];
   sel.onchange=()=>{F.store=+sel.value;render();};
-  ["p1","p2","p3"].forEach(p=>{
+  ["p1","p2","p3","p4"].forEach(p=>{
     const ms=document.getElementById("fmarca_"+p);
     RAW.marcas.forEach((m,i)=>{const o=document.createElement("option");o.value=i;o.textContent=m;ms.appendChild(o);});
     ms.onchange=()=>{FM[p]=+ms.value;render();};
@@ -660,10 +707,15 @@ function block(cls,titulo,hint,kpis){return `<div class="block ${cls}"><div clas
 
 function renderH1(rows){
   const a=agg(rows);
+  const IVA=1.19;
+  // márgenes SIN IVA (netea solo la venta; costo unitario × cantidad ya viene en a.cost)
+  const mrSinDesp = a.ingr?((a.ingr/IVA-a.cost)/(a.ingr/IVA)):NaN;         // real, sin despacho
+  const mrConDesp = (a.ingr+a.env)?(((a.ingr+a.env)/IVA-a.cost)/((a.ingr+a.env)/IVA)):NaN; // real, con despacho
+  const mpreSinDesp = a.ing?((a.ing/IVA-a.cost)/(a.ing/IVA)):NaN;         // pre-cupón, sin despacho
   $("#cards1").innerHTML=`
     <div class="hero">
       <div class="hero-card rosa">
-        <div class="k">Ingreso total del período</div>
+        <div class="k">Ingresos totales con despacho</div>
         <div class="big num">${fmt$(a.ingTotal)}</div>
         <div class="subs">
           <div><span>Productos post cupón</span><b class="num">${fmt$(a.ingr)}</b></div>
@@ -671,36 +723,37 @@ function renderH1(rows){
         </div>
       </div>
       <div class="hero-card morado">
-        <div class="k">Margen real</div>
-        <div class="big num">${fmtP(a.ingr?a.mreal/a.ingr:NaN)}</div>
+        <div class="k">Margen real (sin IVA)</div>
+        <div class="big num">${fmtP(mrSinDesp)}</div>
         <div class="subs">
-          <div><span>Margen pre-cupón</span><b class="num">${fmtP(a.ing?a.mdto/a.ing:NaN)}</b></div>
-          <div><span>Margen real sin IVA (prov.)</span><b class="num">${fmtP(a.ingr?(a.ingr/1.19-a.cost)/(a.ingr/1.19):NaN)}</b></div>
+          <div><span>Real sin IVA, con despacho</span><b class="num">${fmtP(mrConDesp)}</b></div>
+          <div><span>Pre-cupón sin IVA, sin despacho</span><b class="num">${fmtP(mpreSinDesp)}</b></div>
         </div>
       </div>
     </div>
     <div class="blocks">
-      ${block("b-morado","Margen sin IVA · provisional","venta neteada ÷ 1,19 · costo Oracle sin tocar",
-        card("Margen real sin IVA",fmtP(a.ingr?(a.ingr/1.19-a.cost)/(a.ingr/1.19):NaN),"por validar con finanzas")+
-        card("Margen pre-cupón sin IVA",fmtP(a.ing?(a.ing/1.19-a.cost)/(a.ing/1.19):NaN),"por validar con finanzas")
+      ${block("b-morado","Márgenes sin IVA","venta neteada ÷ 1,19 · costo unitario × cantidad · en %",
+        card("Margen real sin despacho",fmtP(mrSinDesp),"sobre productos post cupón")+
+        card("Margen real con despacho",fmtP(mrConDesp),"incluye ingreso de despacho")+
+        card("Margen pre-cupón sin despacho",fmtP(mpreSinDesp),"a special price, antes del cupón")
       )}
       ${block("b-rosa","Venta","sin despacho, post cupón",
-        card("Ingreso solo productos",fmt$(a.ingr),"base de todos los márgenes")+
+        card("Ingreso solo productos",fmt$(a.ingr),"base de los márgenes")+
         card("Ingreso por despacho",fmt$(a.env),a.ingTotal?fmtP(a.env/a.ingTotal)+" del ingreso total":"")
       )}
       ${block("b-lila","Cupones","detalle en la hoja 2",
         card("Órdenes con cupón",fmtN(a.txCup),"de "+fmtN(a.tx)+" totales")+
-        card("Penetración",fmtP(a.tx?a.txCup/a.tx:NaN),"órdenes con alguna sales rule")
+        card("% de pedidos con reglas de cupones aplicados",fmtP(a.tx?a.txCup/a.tx:NaN),"")
       )}
       ${block("b-morado span2","Comportamiento de compra","",
         card("Transacciones",fmtN(a.tx),"órdenes en el scope")+
-        card("Ticket promedio",a.tx?fmt$(a.ingTotal/a.tx):"—","ingreso total / transacciones")+
+        card("Ticket promedio",a.tx?fmt$(a.ingTotal/a.tx):"—","con despacho · sin despacho: "+(a.tx?fmt$(a.ingr/a.tx):"—"))+
         card("Artículos",fmtN(a.q),(a.tx?(a.q/a.tx).toLocaleString("es-CL",{maximumFractionDigits:2}):"—")+" por ticket")+
         card("Precio medio artículo",a.q?fmt$(a.ingTotal/a.q):"—","sin despacho: "+(a.q?fmt$(a.ingr/a.q):"—"))
       )}
     </div>`;
 
-  // serie diaria
+  // serie diaria (montos SIN despacho)
   const byday=new Map();
   for(const r of rows){
     const d=r[C.fecha];
@@ -728,12 +781,14 @@ function drawDaily(days,vals){
   vals.forEach((v,i)=>{
     const h=v.ingr/max*ih;
     s+=`<rect x="${x(i)-bw/2}" y="${pt+ih-h}" width="${bw}" height="${h}" rx="3" fill="var(--lila)"><title>${days[i]}: ${fmt$(v.ingr)}</title></rect>`;
+    // valor del ingreso (sin despacho) sobre cada barra
+    s+=`<text x="${x(i)}" y="${pt+ih-h-6}" text-anchor="middle" style="font-weight:600;fill:var(--ink)">${fmtC(v.ingr)}</text>`;
     s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${days[i].slice(5)}</text>`;
   });
-  // línea % margen (escala 0–80%)
-  const pM=0.8;
+  // línea % margen REAL SIN IVA (escala 0–80%)
+  const pM=0.8, IVA=1.19;
   const pts=vals.map((v,i)=>{
-    const p=v.ingr?(v.ingr-v.cost)/v.ingr:0;
+    const p=v.ingr?((v.ingr/IVA)-v.cost)/(v.ingr/IVA):0;
     return [x(i),pt+ih-Math.min(p/pM,1)*ih,p];
   });
   s+=`<polyline points="${pts.map(p=>p[0]+","+p[1]).join(" ")}" fill="none" stroke="var(--rosa)" stroke-width="2.5"/>`;
@@ -846,29 +901,35 @@ function cupAgg(rows,ventaTotal){
       cup:RAW.cupones[k],
       store:storeLabel,
       ord:o.orders.size,                            // Usos del cupón = órdenes
-      ing:o.ingr,                                   // Ingresos (post cupón)
+      ing:o.ingr,                                   // Ingreso post cupón (sin despacho)
+      ingBruto:o.ing,                               // Ingreso bruto = special price (antes del cupón)
       peso: ventaTotal ? o.ingr/ventaTotal : 0,     // Peso s/ venta del scope (marca si está filtrada)
       dpre: lista ? o.dl/lista : 0,                 // % dscto pre cupón (solo lista)
-      mgpre: o.ing ? (o.ing-o.cost)/o.ing : 0,      // MG pre cupón (special price)
+      mgpre: o.ing ? ((o.ing/1.19)-o.cost)/(o.ing/1.19) : 0,   // MG pre cupón SIN IVA
       dcon: lista ? (o.dl+o.dc)/lista : 0,          // % dscto con cupón (lista + cupón, total)
-      mgpost: o.ingr ? (o.ingr-o.cost)/o.ingr : 0,  // MG post cupón (margen real)
+      mgpost: o.ingr ? ((o.ingr/1.19)-o.cost)/(o.ingr/1.19) : 0, // MG post cupón SIN IVA
     };
   });
 }
 
 function renderH3(rows){
   const a=agg(rows);
+  const IVA=1.19;
   const cupRows=rows.filter(r=>r[C.cup]>=0);
   const ac=agg(cupRows);
+  const mgPreCup = ac.ing?((ac.ing/IVA-ac.cost)/(ac.ing/IVA)):NaN;   // pre-cupón, sin IVA
+  const mgPostCup = ac.ingr?((ac.ingr/IVA-ac.cost)/(ac.ingr/IVA)):NaN; // post-cupón, sin IVA
   $("#cards3").innerHTML=
     block("b-rosa","Adopción","",
       card("Órdenes con cupón",fmtN(a.txCup),"de "+fmtN(a.tx)+" totales")+
-      card("Penetración",fmtP(a.tx?a.txCup/a.tx:NaN),"órdenes con alguna sales rule")
+      card("% de pedidos con reglas de cupones aplicados",fmtP(a.tx?a.txCup/a.tx:NaN),"")
     )+
-    block("b-morado","Impacto","",
-      card("Ingresos con cupón",fmtC(ac.ingr),fmtP(a.ingr?ac.ingr/a.ingr:NaN)+" del ingreso real")+
-      card("Descuento entregado",fmtC(ac.dc),"por cupones y reglas")+
-      card("MG post cupón",fmtP(ac.ingr?ac.mreal/ac.ingr:NaN),"margen real con cupón")
+    block("b-morado","Impacto","valores sin despacho · márgenes sin IVA",
+      card("Ingresos con cupón",fmt$(ac.ingr),"post cupón, sin despacho")+
+      card("% cupones / ingresos",fmtP(a.ingr?ac.ingr/a.ingr:NaN),"sobre ingreso de productos")+
+      card("Descuento entregado",fmt$(ac.dc),"por cupones y reglas")+
+      card("MG pre cupón (sin IVA)",fmtP(mgPreCup),"antes del cupón")+
+      card("MG post cupón (sin IVA)",fmtP(mgPostCup),"con el cupón aplicado")
     );
 
   let data=cupAgg(rows, a.ingr);   // a.ingr = venta total del scope (marca si está filtrada)
@@ -880,42 +941,48 @@ function renderH3(rows){
   data.sort((a,b)=>{const va=a[k],vb=b[k];return (typeof va==="string"?va.localeCompare(vb):va-vb)*dir;});
   const filtering = cupSel.size>0;
   $("#cupcount").textContent=fmtN(data.length)+(data.length===1?" cupón":" cupones")+(filtering?" (filtrado)":"");
-  $("#cuptable tbody").innerHTML=data.length?data.map(d=>`<tr>
+
+  // Total RECALCULADO sobre los cupones visibles (pondera por volumen, no promedio simple)
+  const cupIdxSet=new Set(data.map(d=>RAW.cupones.indexOf(d.cup)));
+  const trows=rows.filter(r=>r[C.cup]>=0&&cupIdxSet.has(r[C.cup]));
+  const t=agg(trows);
+  const tLista=t.ing+t.dl;
+  const totalRow = data.length?`<tr class="totalrow">
+    <td class="l">TOTAL${filtering?" (filtro)":""} · ${data.length} cupón(es)</td>
+    <td class="l">—</td>
+    <td class="num">${fmtN(t.orders.size)}</td>
+    <td class="num gsep">${fmt$(t.ing)}</td>
+    <td class="num">${fmt$(t.ingr)}</td>
+    <td class="num">${fmtP(a.ingr?t.ingr/a.ingr:NaN)}</td>
+    <td class="num gsep">${fmtP(tLista?t.dl/tLista:NaN)}</td>
+    <td class="num">${fmtP(t.ing?((t.ing/1.19)-t.cost)/(t.ing/1.19):NaN)}</td>
+    <td class="num gsep">${fmtP(tLista?(t.dl+t.dc)/tLista:NaN)}</td>
+    <td class="num ${(t.ingr/1.19-t.cost)<0?"neg":"pos"}">${fmtP(t.ingr?((t.ingr/1.19)-t.cost)/(t.ingr/1.19):NaN)}</td>
+  </tr>`:"";
+
+  const bodyRows = data.length?data.map(d=>`<tr>
     <td class="l">${d.cup}</td>
+    <td class="l">${d.store}</td>
     <td class="num">${fmtN(d.ord)}</td>
-    <td class="num gsep">${fmt$(d.ing)}</td>
+    <td class="num gsep">${fmt$(d.ingBruto)}</td>
+    <td class="num">${fmt$(d.ing)}</td>
     <td class="num">${fmtP(d.peso)}</td>
     <td class="num gsep">${fmtP(d.dpre)}</td>
     <td class="num">${fmtP(d.mgpre)}</td>
     <td class="num gsep">${fmtP(d.dcon)}</td>
     <td class="num ${d.mgpost<0?"neg":"pos"}">${fmtP(d.mgpost)}</td>
-  </tr>`).join(""):'<tr><td colspan="8" class="empty l">No hay cupones para ese filtro.</td></tr>';
+  </tr>`).join(""):'<tr><td colspan="10" class="empty l">No hay cupones para ese filtro.</td></tr>';
 
-  // Fila de totales: sumas de $ y %, RECALCULADOS sobre los cupones visibles
-  // (no promedio simple: pondera por volumen = margen real del conjunto).
-  const cupIdxSet=new Set(data.map(d=>RAW.cupones.indexOf(d.cup)));
-  const trows=rows.filter(r=>r[C.cup]>=0&&cupIdxSet.has(r[C.cup]));
-  const t=agg(trows);
-  const tLista=t.ing+t.dl;
-  const foot = data.length?`<tr>
-    <td class="l">TOTAL${filtering?" (filtro)":""} · ${data.length} cupón(es)</td>
-    <td class="num">${fmtN(t.orders.size)}</td>
-    <td class="num gsep">${fmt$(t.ingr)}</td>
-    <td class="num">${fmtP(a.ingr?t.ingr/a.ingr:NaN)}</td>
-    <td class="num gsep">${fmtP(tLista?t.dl/tLista:NaN)}</td>
-    <td class="num">${fmtP(t.ing?(t.ing-t.cost)/t.ing:NaN)}</td>
-    <td class="num gsep">${fmtP(tLista?(t.dl+t.dc)/tLista:NaN)}</td>
-    <td class="num ${(t.ingr-t.cost)<0?"neg":"pos"}">${fmtP(t.ingr?(t.ingr-t.cost)/t.ingr:NaN)}</td>
-  </tr>`:"";
-  $("#cuptable tfoot").innerHTML=foot;
+  // total ARRIBA (primera fila del tbody), luego los cupones
+  $("#cuptable tbody").innerHTML = totalRow + bodyRows;
+  $("#cuptable tfoot").innerHTML = "";
+
   // refrescar la lista de checkboxes según el scope actual
   renderCupFilter(allCups);
   document.querySelectorAll("#cuptable thead tr.cols th").forEach(th=>{
     const base=th.textContent.replace(/[▲▼\s]+$/,"");
     th.innerHTML=base+(th.dataset.k===k?` <span class="arr">${dir<0?"▼":"▲"}</span>`:"");
   });
-
-  $("#cuptable tfoot").innerHTML=foot;
 }
 
 // Construye/actualiza la lista de checkboxes del filtro de cupones.
@@ -963,7 +1030,7 @@ function initH3(){
   document.querySelectorAll("#cuptable thead tr.cols th").forEach(th=>{
     th.onclick=()=>{
       const k=th.dataset.k;
-      if(cupSort.k===k)cupSort.dir*=-1;else cupSort={k,dir:(k==="cup")?1:-1};
+      if(cupSort.k===k)cupSort.dir*=-1;else cupSort={k,dir:(k==="cup"||k==="store")?1:-1};
       renderH3(filtered(FM.p3));
     };
   });
@@ -980,6 +1047,75 @@ document.querySelectorAll(".tab").forEach(t=>{
   };
 });
 
+/* ---------- HOJA · DETALLE POR ÓRDENES ---------- */
+let ordSort={k:"ing",dir:-1}, ordPage=0, ordQuery="";
+const ORDPAGE=25;
+
+function ordAgg(rows){
+  const m=new Map();
+  for(const r of rows){
+    const oi=r[C.order];
+    if(!m.has(oi))m.set(oi,{ing:0,ingBruto:0,env:0,q:0,fecha:r[C.fecha],store:r[C.store],cups:new Set()});
+    const o=m.get(oi);
+    o.ing+=r[C.ingr]; o.ingBruto+=r[C.ing]; o.env+=r[C.env]; o.q+=r[C.q];
+    if(r[C.cup]>=0)o.cups.add(RAW.cupones[r[C.cup]]);
+    if(r[C.fecha]<o.fecha)o.fecha=r[C.fecha];
+  }
+  return [...m.entries()].map(([oi,o])=>({
+    mag: RAW.orders[oi],
+    ora: (RAW.oracles[oi]||"—"),
+    fecha:o.fecha, store:RAW.stores[o.store],
+    q:o.q, ing:o.ing, ingBruto:o.ingBruto, env:o.env,
+    cup: o.cups.size? (o.cups.size>1? o.cups.size+" cupones" : [...o.cups][0]) : "—",
+  }));
+}
+
+function renderH4(rows){
+  let data=ordAgg(rows);
+  if(ordQuery){
+    const q=ordQuery.toLowerCase();
+    data=data.filter(d=>d.mag.toLowerCase().includes(q)||String(d.ora).toLowerCase().includes(q)||d.store.toLowerCase().includes(q)||d.cup.toLowerCase().includes(q));
+  }
+  const k=ordSort.k,dir=ordSort.dir;
+  data.sort((a,b)=>{const va=a[k],vb=b[k];return (typeof va==="string"?String(va).localeCompare(String(vb)):va-vb)*dir;});
+  const pages=Math.max(Math.ceil(data.length/ORDPAGE),1);
+  ordPage=Math.min(ordPage,pages-1);
+  const slice=data.slice(ordPage*ORDPAGE,(ordPage+1)*ORDPAGE);
+  $("#ordtable tbody").innerHTML=slice.length?slice.map(d=>`<tr>
+    <td class="l num">${d.mag}</td>
+    <td class="l num">${d.ora}</td>
+    <td class="l num">${d.fecha}</td>
+    <td class="l">${d.store}</td>
+    <td class="num">${fmtN(d.q)}</td>
+    <td class="num gsep">${fmt$(d.ingBruto)}</td>
+    <td class="num">${fmt$(d.ing)}</td>
+    <td class="num">${fmt$(d.env)}</td>
+    <td class="l gsep">${d.cup}</td>
+  </tr>`).join(""):'<tr><td colspan="9" class="empty l">Sin órdenes para ese filtro.</td></tr>';
+  $("#ordcount").textContent=fmtN(data.length)+(data.length===1?" orden":" órdenes");
+  $("#ordinfo").textContent=`Página ${ordPage+1} de ${pages}`;
+  $("#ordprev").disabled=ordPage===0;
+  $("#ordnext").disabled=ordPage>=pages-1;
+  document.querySelectorAll("#ordtable th").forEach(th=>{
+    const base=th.textContent.replace(/[▲▼\s]+$/,"");
+    th.innerHTML=base+(th.dataset.k===k?` <span class="arr">${dir<0?"▼":"▲"}</span>`:"");
+  });
+}
+
+function initH4(){
+  document.querySelectorAll("#ordtable th").forEach(th=>{
+    th.onclick=()=>{
+      const key=th.dataset.k;
+      if(ordSort.k===key)ordSort.dir*=-1;else ordSort={k:key,dir:["mag","ora","fecha","store","cup"].includes(key)?1:-1};
+      ordPage=0;renderH4(filtered(FM.p4));
+    };
+  });
+  const os=document.getElementById("ordsearch");
+  if(os)os.oninput=e=>{ordQuery=e.target.value.trim();ordPage=0;renderH4(filtered(FM.p4));};
+  const pv=document.getElementById("ordprev"); if(pv)pv.onclick=()=>{ordPage--;renderH4(filtered(FM.p4));};
+  const nx=document.getElementById("ordnext"); if(nx)nx.onclick=()=>{ordPage++;renderH4(filtered(FM.p4));};
+}
+
 function render(){
   if(!RAW)return;
   const a=agg(filtered());
@@ -987,6 +1123,7 @@ function render(){
   renderH1(filtered(FM.p1));
   renderH2(filtered(FM.p2));
   renderH3(filtered(FM.p3));
+  renderH4(filtered(FM.p4));
 }
 
 /* ---------- carga del Excel ---------- */
@@ -1003,7 +1140,7 @@ function ingest(arrayBuffer, nombre){
     // reset de filtros a rango del archivo
     F.store=-1;F.d1=RAW.periodo[0];F.d2=RAW.periodo[1];F.h1=0;F.h2=23;
     FM.p1=-1;FM.p2=-1;FM.p3=-1;
-    if(!booted){ initFilters();initH2();initH3();booted=true; }
+    if(!booted){ initFilters();initH2();initH3();initH4();booted=true; }
     else { rebuildFilterOptions(); }
     render();
     $bar.className="loadbar ok";
@@ -1022,7 +1159,7 @@ function rebuildFilterOptions(){
   const sel=document.getElementById("fstore");
   sel.innerHTML='<option value="-1">Todas las stores</option>';
   RAW.stores.forEach((s,i)=>{const o=document.createElement("option");o.value=i;o.textContent=s;sel.appendChild(o);});
-  ["p1","p2","p3"].forEach(p=>{
+  ["p1","p2","p3","p4"].forEach(p=>{
     const ms=document.getElementById("fmarca_"+p);
     ms.innerHTML='<option value="-1">Todas las marcas</option>';
     RAW.marcas.forEach((m,i)=>{const o=document.createElement("option");o.value=i;o.textContent=m;ms.appendChild(o);});

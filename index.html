@@ -382,8 +382,8 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
           <th class="l" data-k="cup">Nombre</th>
           <th class="l" data-k="store">Store</th>
           <th data-k="ord">Usos</th>
-          <th class="gsep" data-k="ingBruto">Ingreso bruto</th>
-          <th data-k="ing">Ingreso neto</th>
+          <th class="gsep" data-k="ingBruto">Ingreso s/cupón</th>
+          <th data-k="ing">Ingreso c/cupón</th>
           <th data-k="peso">Peso s/ Vta</th>
           <th class="gsep" data-k="dpre">% Dscto</th>
           <th data-k="mgpre">Margen</th>
@@ -425,8 +425,8 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
           <th class="l" data-k="fecha">Fecha</th>
           <th class="l" data-k="marca">Marca</th>
           <th data-k="q">Artículos</th>
-          <th class="gsep" data-k="ingBruto">Ingreso bruto</th>
-          <th data-k="ing">Ingreso neto</th>
+          <th class="gsep" data-k="ingBruto">Ingreso s/cupón</th>
+          <th data-k="ing">Ingreso c/cupón</th>
           <th data-k="env">Despacho</th>
           <th class="gsep" data-k="dpre">Dto pre cupón</th>
           <th data-k="dpost">Dto post cupón</th>
@@ -443,7 +443,7 @@ body.drag{outline:3px dashed var(--rosa);outline-offset:-6px}
       <span id="ordinfo"></span>
       <button id="ordnext">Siguiente ›</button>
     </div>
-    <div class="note">Ingreso bruto = a special price (antes del cupón) · Ingreso neto = post cupón · ambos sin despacho. Dto y Margen (pre/post cupón) en % · márgenes sin IVA. Marca dominante de la orden (+N si hay más).</div>
+    <div class="note">Ingreso s/cupón = a special price (antes del cupón) · Ingreso c/cupón = después del cupón · ambos sin despacho. Dto y Margen (pre/post cupón) en % · márgenes sin IVA. Marca dominante de la orden (+N si hay más).</div>
   </div>
 </section>
 
@@ -1085,7 +1085,7 @@ function ordDetail(oi, rows){
   return `<div class="orddetail"><table class="detailtbl">
     <thead><tr>
       <th class="l">SKU</th><th class="l">Producto</th><th class="l">Marca</th>
-      <th>Q</th><th>Ing. bruto</th><th>Ing. neto</th><th>Dto total</th><th>Margen</th><th class="l">Cupón</th>
+      <th>Q</th><th>Ing. s/cupón</th><th>Ing. c/cupón</th><th>Dto total</th><th>Margen</th><th class="l">Cupón</th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
   </table></div>`;
